@@ -1,7 +1,4 @@
-import { useState } from 'react';
-import { STAFF, TODAY_SHIFTS } from '../data/staff';
-import { TODAY_SALES } from '../data/sales';
-import { RECIPES } from '../data/recipes';
+import { useState, useEffect } from 'react';
 import { fmt$ } from '../utils/helpers';
 import { api } from '../utils/api';
 import KpiCard from '../components/KpiCard';
@@ -19,10 +16,27 @@ const StaffPage = ({ addToast, slingCount, setSlingCount }) => {
   const [sending, setSending]     = useState(false);
   const [customMsg, setCustomMsg] = useState('');
   const [showCustom, setShowCustom] = useState(false);
+  const [staff, setStaff]         = useState([]);
+  const [shifts, setShifts]       = useState([]);
+  const [salesRaw, setSalesRaw]   = useState([]);
+  const [recipes, setRecipes]     = useState([]);
+  const [loading, setLoading]     = useState(true);
 
-  const shifts = TODAY_SHIFTS.map(s => ({ ...s, staff: STAFF.find(x => x.id === s.staffId) }));
-  const laborToday = shifts.reduce((sum, s) => sum + (s.staff?.rate || 0) * s.hours, 0);
-  const todayRev = TODAY_SALES.reduce((sum, s) => { const r = RECIPES.find(x => x.id === s.recipeId); return sum + (r?.price || 0) * s.qty; }, 0);
+  useEffect(() => {
+    Promise.all([api.getStaff(), api.getSales(), api.getRecipes()])
+      .then(([staffData, s, r]) => {
+        setStaff(staffData.staff || []);
+        setShifts(staffData.shifts || []);
+        setSalesRaw(s);
+        setRecipes(r);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const enrichedShifts = shifts.map(s => ({ ...s, staff: staff.find(x => x.id === s.staffId) }));
+  const laborToday = enrichedShifts.reduce((sum, s) => sum + (s.staff?.rate || 0) * s.hours, 0);
+  const todayRev = salesRaw.reduce((sum, s) => { const r = recipes.find(x => x.id === s.recipeId); return sum + (r?.price || 0) * s.qty; }, 0);
   const laborPct = todayRev > 0 ? (laborToday / todayRev * 100).toFixed(1) : 0;
 
   const sendAlert = async (message) => {
@@ -65,6 +79,8 @@ const StaffPage = ({ addToast, slingCount, setSlingCount }) => {
     if (role.includes('Host'))   return 'bg-purple-100 text-purple-700';
     return 'bg-stone-100 text-stone-600';
   };
+
+  if (loading) return <div className="flex items-center justify-center h-64 text-stone-400">Loading…</div>;
 
   return (
     <div className="space-y-6">
@@ -110,7 +126,7 @@ const StaffPage = ({ addToast, slingCount, setSlingCount }) => {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard title="On Clock Today" value={shifts.length}      subtitle={`of ${STAFF.length} total staff`}                                                    icon="dashboard" variant="orange" />
+        <KpiCard title="On Clock Today" value={enrichedShifts.length}      subtitle={`of ${staff.length} total staff`}                                                    icon="dashboard" variant="orange" />
         <KpiCard title="Labor Cost"     value={fmt$(laborToday)}   subtitle="Today's shifts"                                                                      icon="inventory"  variant="blue" />
         <KpiCard title="Labor %"        value={`${laborPct}%`}     subtitle={`Target <30% · ${Number(laborPct) < 30 ? 'On target' : 'Above target'}`}             icon="forecast"   variant={Number(laborPct) < 30 ? 'green' : 'red'} />
         <KpiCard title="Sling Alerts"   value={slingCount}         subtitle="Sent this session"                                                                   icon="sling"      variant="blue" />
@@ -134,7 +150,7 @@ const StaffPage = ({ addToast, slingCount, setSlingCount }) => {
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-50">
-              {shifts.map((s, i) => (
+              {enrichedShifts.map((s, i) => (
                 <tr key={i} className="hover:bg-stone-50 transition-colors">
                   <td className="px-5 py-3 font-medium text-stone-800">{s.staff?.name}</td>
                   <td className="px-4 py-3">
@@ -153,7 +169,7 @@ const StaffPage = ({ addToast, slingCount, setSlingCount }) => {
             <tfoot>
               <tr className="bg-stone-50 font-bold text-stone-800 border-t-2 border-stone-200">
                 <td className="px-5 py-3" colSpan={4}>Total</td>
-                <td className="px-4 py-3 text-right">{shifts.reduce((a, s) => a + s.hours, 0)}h</td>
+                <td className="px-4 py-3 text-right">{enrichedShifts.reduce((a, s) => a + s.hours, 0)}h</td>
                 <td className="px-4 py-3 text-right">{fmt$(laborToday)}</td>
                 <td />
               </tr>
@@ -165,7 +181,7 @@ const StaffPage = ({ addToast, slingCount, setSlingCount }) => {
       <div className="bg-white rounded-2xl shadow-sm border border-stone-100 p-5">
         <h2 className="font-semibold text-stone-700 mb-4">Full Roster</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {STAFF.map(s => (
+          {staff.map(s => (
             <div key={s.id} className={`rounded-xl border p-4 flex items-start gap-3 ${s.status === 'active' ? 'border-stone-100' : 'border-stone-100 opacity-50'}`}>
               <div className="w-9 h-9 rounded-full bg-orange-100 flex items-center justify-center shrink-0 text-orange-700 font-bold text-sm">
                 {s.name.split(' ').map(n => n[0]).join('')}

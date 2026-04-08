@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { RECIPES } from '../data/recipes';
+import { useState, useEffect } from 'react';
+import { api } from '../utils/api';
 import { fmt$, fmtNum } from '../utils/helpers';
 import Icon from '../components/Icon';
 import SupplierChip from '../components/SupplierChip';
@@ -195,9 +195,14 @@ const PREP_RECIPES = [
 ];
 
 const RecipesPage = ({ inventory }) => {
+  const [recipes, setRecipes] = useState([]);
   const [tab, setTab] = useState("menu");
   const [selected, setSelected] = useState(null);
   const [openPrep, setOpenPrep] = useState(null);
+
+  useEffect(() => {
+    api.getRecipes().then(setRecipes).catch(() => {});
+  }, []);
 
   const costOf = recipe => recipe.ingredients.reduce((sum, ing) => {
     const item = inventory.find(i => i.id === ing.id);
@@ -227,7 +232,7 @@ const RecipesPage = ({ inventory }) => {
       {tab === "menu" && (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {RECIPES.map(r => {
+            {recipes.map(r => {
               const cost = costOf(r);
               const margin = ((r.price - cost) / r.price * 100).toFixed(0);
               const qty = canMake(r);

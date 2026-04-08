@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Chart, registerables } from 'chart.js';
-import { USAGE_DATA } from '../data/usage';
+import { api } from '../utils/api';
 import { linearForecast, fmt$, fmtNum } from '../utils/helpers';
 import KpiCard from '../components/KpiCard';
 import SupplierChip from '../components/SupplierChip';
@@ -11,8 +11,14 @@ const ForecastingPage = ({ inventory }) => {
   const lineRef = useRef(null), lineInst = useRef(null);
   const donutRef = useRef(null), donutInst = useRef(null);
   const [selected, setSelected] = useState("00 Flour");
+  const [usageData, setUsageData] = useState({ weeks: [], items: {} });
+
+  useEffect(() => {
+    api.getUsageData().then(setUsageData).catch(() => {});
+  }, []);
+
   const FW = 4;
-  const hist = USAGE_DATA.items[selected] || [];
+  const hist = usageData.items[selected] || [];
   const fore = linearForecast(hist, FW);
   const avgW = hist.length ? hist.reduce((a, b) => a + b, 0) / hist.length : 0;
   const item = inventory.find(i => i.name === selected);
@@ -25,7 +31,7 @@ const ForecastingPage = ({ inventory }) => {
     lineInst.current = new Chart(lineRef.current.getContext("2d"), {
       type: "line",
       data: {
-        labels: [...USAGE_DATA.weeks, ...futW],
+        labels: [...usageData.weeks, ...futW],
         datasets: [
           { label: "Historical", data: [...hist, ...Array(FW).fill(null)], borderColor: "#ea580c", backgroundColor: "rgba(234,88,12,0.07)", borderWidth: 2.5, pointRadius: 4, pointBackgroundColor: "#ea580c", tension: 0.35, fill: true },
           { label: "Forecast", data: [...Array(hist.length - 1).fill(null), hist[hist.length - 1], ...fore], borderColor: "#94a3b8", backgroundColor: "rgba(148,163,184,0.04)", borderWidth: 2, borderDash: [5, 5], pointRadius: 4, pointBackgroundColor: "#94a3b8", tension: 0.35, fill: false },
@@ -67,7 +73,7 @@ const ForecastingPage = ({ inventory }) => {
             <h2 className="font-semibold text-stone-700">Weekly Usage Trend</h2>
             <select className="text-sm border border-stone-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-orange-300 text-stone-600 bg-white"
               value={selected} onChange={e => setSelected(e.target.value)}>
-              {Object.keys(USAGE_DATA.items).map(k => <option key={k}>{k}</option>)}
+              {Object.keys(usageData.items).map(k => <option key={k}>{k}</option>)}
             </select>
           </div>
           <div style={{ height: 280 }}><canvas ref={lineRef} /></div>
@@ -80,7 +86,7 @@ const ForecastingPage = ({ inventory }) => {
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-stone-100">
         <h2 className="font-semibold text-stone-700 mb-4">Reorder Recommendations</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {Object.entries(USAGE_DATA.items).map(([name, data]) => {
+          {Object.entries(usageData.items).map(([name, data]) => {
             const inv = inventory.find(i => i.name === name);
             if (!inv) return null;
             const avg = data.reduce((a, b) => a + b, 0) / data.length;

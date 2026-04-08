@@ -64,4 +64,10 @@ export const api = {
 
   // Transactions — webhook event log
   getTransactions: () => request('/webhook/transactions'),
+
+  // Recipes
+  getRecipes: () => request('/recipes'),
+
+  // Forecasting
+  getUsageData: () => request('/forecasting/usage'),
 };

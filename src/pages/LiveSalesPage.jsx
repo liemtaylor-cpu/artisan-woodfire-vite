@@ -1,32 +1,29 @@
-import { useState, useMemo } from 'react';
-import { TODAY_SALES } from '../data/sales';
-import { RECIPES } from '../data/recipes';
-import { INITIAL_INVENTORY } from '../data/inventory';
+import { useState, useEffect, useMemo } from 'react';
 import { fmt$ } from '../utils/helpers';
 import { api } from '../utils/api';
 import KpiCard from '../components/KpiCard';
 import Icon from '../components/Icon';
 
 const LiveSalesPage = ({ inventory, addToast, setPosLastSync }) => {
-  const [sales, setSales] = useState(() => TODAY_SALES.map(s => {
-    const r = RECIPES.find(x => x.id === s.recipeId);
-    const cogs = r ? r.ingredients.reduce((sum, ing) => {
-      const item = INITIAL_INVENTORY.find(i => i.id === ing.id);
-      return sum + (item ? ing.qty * item.unitCost : 0);
-    }, 0) : 0;
-    return { ...s, recipe: r, cogs };
-  }));
+  const [salesRaw, setSalesRaw] = useState([]);
+  const [recipes, setRecipes]   = useState([]);
   const [lastSync, setLastSync] = useState(() => new Date());
-  const [syncing, setSyncing] = useState(false);
+  const [syncing, setSyncing]   = useState(false);
+  const [loading, setLoading]   = useState(true);
+
+  useEffect(() => {
+    Promise.all([api.getSales(), api.getRecipes()])
+      .then(([s, r]) => { setSalesRaw(s); setRecipes(r); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
 
   const doSync = async () => {
     setSyncing(true);
     try {
-      const updated = await api.syncSales();
-      setSales(prev => prev.map(s => {
-        const u = updated.find(x => x.recipeId === s.recipeId);
-        return u ? { ...s, qty: u.qty } : s;
-      }));
+      const result = await api.syncSales();
+      const updated = result.sales || result;
+      setSalesRaw(Array.isArray(updated) ? updated : (updated.sales || []));
       const now = new Date();
       setLastSync(now);
       if (setPosLastSync) setPosLastSync(now);
@@ -38,19 +35,26 @@ const LiveSalesPage = ({ inventory, addToast, setPosLastSync }) => {
     }
   };
 
-  const rows = useMemo(() => sales.map(s => {
-    const rev = (s.recipe?.price || 0) * s.qty;
-    const totalCogs = s.cogs * s.qty;
+  const rows = useMemo(() => salesRaw.map(s => {
+    const recipe = recipes.find(r => r.id === s.recipeId);
+    const cogs = recipe ? recipe.ingredients.reduce((sum, ing) => {
+      const item = inventory.find(i => i.id === ing.id);
+      return sum + (item ? ing.qty * item.unitCost : 0);
+    }, 0) : 0;
+    const rev = (recipe?.price || 0) * s.qty;
+    const totalCogs = cogs * s.qty;
     const gp = rev - totalCogs;
     const margin = rev > 0 ? gp / rev * 100 : 0;
-    return { ...s, rev, totalCogs, gp, margin };
-  }), [sales]);
+    return { ...s, recipe, cogs, rev, totalCogs, gp, margin };
+  }), [salesRaw, recipes, inventory]);
 
   const totals = useMemo(() => rows.reduce((acc, r) => ({
     qty: acc.qty + r.qty, rev: acc.rev + r.rev, cogs: acc.cogs + r.totalCogs, gp: acc.gp + r.gp
   }), { qty: 0, rev: 0, cogs: 0, gp: 0 }), [rows]);
 
   const avgMargin = totals.rev > 0 ? totals.gp / totals.rev * 100 : 0;
+
+  if (loading) return <div className="flex items-center justify-center h-64 text-stone-400">Loading…</div>;
 
   return (
     <div className="space-y-6">

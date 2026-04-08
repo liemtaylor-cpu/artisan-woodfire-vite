@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Chart, registerables } from 'chart.js';
-import { TODAY_SALES } from '../data/sales';
-import { RECIPES } from '../data/recipes';
+import { api } from '../utils/api';
 import { fmt$ } from '../utils/helpers';
 import KpiCard from '../components/KpiCard';
 
@@ -15,15 +14,23 @@ const AnalyticsPage = ({ inventory }) => {
   const barRef  = useRef(null); const barInst  = useRef(null);
   const hbarRef = useRef(null); const hbarInst = useRef(null);
   const [period, setPeriod] = useState("8w");
+  const [salesRaw, setSalesRaw] = useState([]);
+  const [recipes, setRecipes]   = useState([]);
+
+  useEffect(() => {
+    Promise.all([api.getSales(), api.getRecipes()])
+      .then(([s, r]) => { setSalesRaw(s); setRecipes(r); })
+      .catch(() => {});
+  }, []);
 
   const invMap = useMemo(() => { const m = {}; inventory.forEach(i => m[i.id] = i); return m; }, [inventory]);
-  const itemStats = useMemo(() => TODAY_SALES.map(s => {
-    const r = RECIPES.find(x => x.id === s.recipeId);
+  const itemStats = useMemo(() => salesRaw.map(s => {
+    const r = recipes.find(x => x.id === s.recipeId);
     const cogs = r ? r.ingredients.reduce((sum, ing) => { const it = invMap[ing.id]; return sum + (it ? ing.qty * it.unitCost : 0); }, 0) : 0;
     const rev = (r?.price || 0) * s.qty;
     const gp = rev - cogs * s.qty;
     return { name: r?.name || "?", icon: r?.icon || "", qty: s.qty, rev, cogs: cogs * s.qty, gp, margin: rev > 0 ? gp / rev * 100 : 0 };
-  }).sort((a, b) => b.rev - a.rev), [invMap]);
+  }).sort((a, b) => b.rev - a.rev), [salesRaw, recipes, invMap]);
 
   const chartRev    = period === "4w" ? WEEKLY_REV.slice(4)   : WEEKLY_REV;
   const chartCogs   = period === "4w" ? WEEKLY_COGS.slice(4)  : WEEKLY_COGS;
