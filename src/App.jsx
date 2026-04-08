@@ -127,7 +127,7 @@ const App = () => {
     staff:       <StaffPage      addToast={addToast} slingCount={slingCount} setSlingCount={setSlingCount} hidePayRates={role === 'manager'} />,
     settings:    <SettingsPage   addToast={addToast} />,
     inventory:   <InventoryPage  key={JSON.stringify(pageCtx)} inventory={inventory} setInventory={setInventory} addToast={addToast} initCtx={pageCtx} />,
-    recipes:     <RecipesPage    inventory={inventory} />,
+    recipes:     <RecipesPage    inventory={inventory} addToast={addToast} />,
     orders:      <OrdersPage     key={JSON.stringify(pageCtx)} orders={orders} setOrders={setOrders} inventory={inventory} setInventory={setInventory} addToast={addToast} initCtx={pageCtx} />,
     forecasting: <ForecastingPage inventory={inventory} />,
     duties:      <DutiesPage          addToast={addToast} />,

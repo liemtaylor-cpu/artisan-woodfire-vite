@@ -69,7 +69,10 @@ export const api = {
   getTransactions: () => request('/webhook/transactions'),
 
   // Recipes
-  getRecipes: () => request('/recipes'),
+  getRecipes:   ()         => request('/recipes'),
+  updateRecipe: (id, data) => request(`/recipes/${id}`, { method: 'PUT', body: data }),
+  addRecipe:    (data)     => request('/recipes', { method: 'POST', body: data }),
+  deleteRecipe: (id)       => request(`/recipes/${id}`, { method: 'DELETE' }),
 
   // Forecasting
   getUsageData: () => request('/forecasting/usage'),

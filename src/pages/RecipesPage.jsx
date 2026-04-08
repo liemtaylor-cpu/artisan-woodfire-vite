@@ -194,11 +194,15 @@ const PREP_RECIPES = [
     ]},
 ];
 
-const RecipesPage = ({ inventory }) => {
+const RecipesPage = ({ inventory, addToast }) => {
   const [recipes, setRecipes] = useState([]);
   const [tab, setTab] = useState("menu");
   const [selected, setSelected] = useState(null);
   const [openPrep, setOpenPrep] = useState(null);
+  const [editingRecipe, setEditingRecipe] = useState(null);
+  const [editForm, setEditForm]           = useState({});
+  const [showAddRecipe, setShowAddRecipe] = useState(false);
+  const [saving, setSaving]               = useState(false);
 
   useEffect(() => {
     api.getRecipes().then(setRecipes).catch(() => {});
@@ -214,6 +218,60 @@ const RecipesPage = ({ inventory }) => {
     if (!item || ing.qty === 0) return 999;
     return item.currentStock / ing.qty;
   })));
+
+  const openEdit = (r) => {
+    setEditingRecipe(r);
+    setEditForm({ name: r.name, price: r.price, icon: r.icon, sku: r.sku || '', ingredients: r.ingredients.map(i => ({ ...i })) });
+  };
+
+  const saveEdit = async () => {
+    setSaving(true);
+    try {
+      const updated = await api.updateRecipe(editingRecipe.id, editForm);
+      setRecipes(prev => prev.map(r => r.id === editingRecipe.id ? updated : r));
+      setEditingRecipe(null);
+      if (selected?.id === editingRecipe.id) setSelected(updated);
+      addToast({ type: 'success', channel: 'Recipes', msg: `${editForm.name} updated.` });
+    } catch {
+      addToast({ type: 'alert', channel: 'Recipes', msg: 'Save failed.' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveNew = async () => {
+    setSaving(true);
+    try {
+      const created = await api.addRecipe(editForm);
+      setRecipes(prev => [...prev, created]);
+      setShowAddRecipe(false);
+      setEditForm({});
+      addToast({ type: 'success', channel: 'Recipes', msg: `${created.name} added.` });
+    } catch {
+      addToast({ type: 'alert', channel: 'Recipes', msg: 'Failed to add recipe.' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteRecipe = async (id, name) => {
+    if (!window.confirm(`Delete ${name}?`)) return;
+    try {
+      await api.deleteRecipe(id);
+      setRecipes(prev => prev.filter(r => r.id !== id));
+      if (selected?.id === id) setSelected(null);
+      addToast({ type: 'info', channel: 'Recipes', msg: `${name} deleted.` });
+    } catch {
+      addToast({ type: 'alert', channel: 'Recipes', msg: 'Delete failed.' });
+    }
+  };
+
+  const addIngredient = () => setEditForm(f => ({ ...f, ingredients: [...(f.ingredients || []), { id: '', qty: 0 }] }));
+  const removeIngredient = (idx) => setEditForm(f => ({ ...f, ingredients: f.ingredients.filter((_, i) => i !== idx) }));
+  const updateIngredient = (idx, field, value) => setEditForm(f => ({
+    ...f,
+    ingredients: f.ingredients.map((ing, i) => i === idx ? { ...ing, [field]: field === 'qty' ? parseFloat(value) || 0 : parseInt(value) || '' } : ing)
+  }));
 
   return (
     <div className="space-y-5">
@@ -231,6 +289,12 @@ const RecipesPage = ({ inventory }) => {
 
       {tab === "menu" && (
         <>
+          <div className="flex justify-end">
+            <button onClick={() => { setShowAddRecipe(true); setEditForm({ name: '', price: '', icon: '🍕', sku: '', ingredients: [] }); }}
+              className="px-4 py-2.5 bg-orange-600 hover:bg-orange-700 text-white text-sm font-semibold rounded-xl transition-colors">
+              + Add Menu Item
+            </button>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {recipes.map(r => {
               const cost = costOf(r);
@@ -250,6 +314,16 @@ const RecipesPage = ({ inventory }) => {
                     <div className={`rounded-lg p-2 ${low ? "bg-red-50" : "bg-stone-50"}`}><p className="text-xs text-stone-400">Can Make</p><p className={`text-sm font-bold ${low ? "text-red-600" : "text-stone-700"}`}>{qty}</p></div>
                   </div>
                   <p className="text-xs text-stone-400 mt-3">{r.ingredients.length} ingredients · tap for details</p>
+                  <div className="flex gap-2 mt-3 pt-3 border-t border-stone-100">
+                    <button onClick={e => { e.stopPropagation(); openEdit(r); }}
+                      className="flex-1 text-xs font-semibold text-stone-500 hover:text-orange-600 transition-colors py-1">
+                      Edit
+                    </button>
+                    <button onClick={e => { e.stopPropagation(); deleteRecipe(r.id, r.name); }}
+                      className="text-xs font-semibold text-stone-400 hover:text-red-500 transition-colors py-1 px-2">
+                      ✕
+                    </button>
+                  </div>
                 </button>
               );
             })}
@@ -348,6 +422,87 @@ const RecipesPage = ({ inventory }) => {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {(editingRecipe || showAddRecipe) && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-stone-800 text-lg">{editingRecipe ? 'Edit Menu Item' : 'Add Menu Item'}</h3>
+              <button onClick={() => { setEditingRecipe(null); setShowAddRecipe(false); }} className="text-stone-400 hover:text-stone-600 text-xl">✕</button>
+            </div>
+
+            {/* Name + Emoji */}
+            <div className="grid grid-cols-4 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Icon</label>
+                <input value={editForm.icon || ''} onChange={e => setEditForm(f => ({ ...f, icon: e.target.value }))}
+                  className="mt-1 w-full border border-stone-200 rounded-xl px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-orange-300" placeholder="🍕" />
+              </div>
+              <div className="col-span-3">
+                <label className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Name</label>
+                <input value={editForm.name || ''} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
+                  className="mt-1 w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300" placeholder="Pizza name…" />
+              </div>
+            </div>
+
+            {/* Price + SKU */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Menu Price ($)</label>
+                <input type="number" min="0" step="0.50" value={editForm.price || ''} onChange={e => setEditForm(f => ({ ...f, price: e.target.value }))}
+                  className="mt-1 w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-stone-500 uppercase tracking-wide">POS SKU</label>
+                <input value={editForm.sku || ''} onChange={e => setEditForm(f => ({ ...f, sku: e.target.value.toUpperCase() }))}
+                  className="mt-1 w-full border border-stone-200 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-orange-300" placeholder="PIZZA-NAME" />
+                <p className="text-xs text-stone-400 mt-1">Must match Shift4 SKU exactly</p>
+              </div>
+            </div>
+
+            {/* Ingredients */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Ingredients (qty per pizza)</label>
+                <button onClick={addIngredient} className="text-xs text-orange-600 hover:text-orange-800 font-semibold">+ Add</button>
+              </div>
+              <div className="space-y-2">
+                {(editForm.ingredients || []).map((ing, idx) => {
+                  const item = inventory.find(i => i.id === ing.id);
+                  return (
+                    <div key={idx} className="flex items-center gap-2">
+                      <select value={ing.id || ''} onChange={e => updateIngredient(idx, 'id', e.target.value)}
+                        className="flex-1 border border-stone-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-orange-300">
+                        <option value="">Select ingredient…</option>
+                        {inventory.map(i => <option key={i.id} value={i.id}>{i.name} ({i.unit})</option>)}
+                      </select>
+                      <input type="number" min="0" step="0.01" value={ing.qty} onChange={e => updateIngredient(idx, 'qty', e.target.value)}
+                        className="w-20 border border-stone-200 rounded-lg px-2 py-1.5 text-xs text-right focus:outline-none focus:ring-2 focus:ring-orange-300" />
+                      <span className="text-xs text-stone-400 w-8">{item?.unit || ''}</span>
+                      <button onClick={() => removeIngredient(idx)} className="text-stone-300 hover:text-red-500 text-sm">✕</button>
+                    </div>
+                  );
+                })}
+                {(editForm.ingredients || []).length === 0 && (
+                  <p className="text-xs text-stone-400 text-center py-2">No ingredients yet — click + Add</p>
+                )}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2 pt-2">
+              <button onClick={() => { setEditingRecipe(null); setShowAddRecipe(false); }}
+                className="flex-1 py-2.5 border border-stone-200 rounded-xl text-sm font-semibold text-stone-600 hover:bg-stone-50 transition-colors">
+                Cancel
+              </button>
+              <button onClick={editingRecipe ? saveEdit : saveNew} disabled={saving || !editForm.name || !editForm.price}
+                className="flex-1 py-2.5 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-colors">
+                {saving ? 'Saving…' : editingRecipe ? 'Save Changes' : 'Add Item'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
