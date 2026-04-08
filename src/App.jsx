@@ -46,7 +46,6 @@ const App = () => {
   const [orders, setOrders] = useState(INITIAL_ORDERS);
   const [toasts, setToasts] = useState([]);
   const [slingCount, setSlingCount] = useState(3);
-  const [posLastSync, setPosLastSync] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // Load data from API on mount
@@ -122,8 +121,8 @@ const App = () => {
 
   const pages = {
     employee:    <EmployeePage   inventory={inventory} onNavigate={safeNav} />,
-    dashboard:   <Dashboard      inventory={inventory} orders={orders} onNavigate={navigateTo} addToast={addToast} posLastSync={posLastSync} setPosLastSync={setPosLastSync} setInventory={setInventory} />,
-    sales:       <LiveSalesPage  inventory={inventory} addToast={addToast} setPosLastSync={setPosLastSync} setInventory={setInventory} />,
+    dashboard:   <Dashboard      inventory={inventory} orders={orders} onNavigate={navigateTo} addToast={addToast} setInventory={setInventory} />,
+    sales:       <LiveSalesPage  inventory={inventory} addToast={addToast} setInventory={setInventory} />,
     analytics:   <AnalyticsPage  inventory={inventory} />,
     staff:       <StaffPage      addToast={addToast} slingCount={slingCount} setSlingCount={setSlingCount} hidePayRates={role === 'manager'} />,
     settings:    <SettingsPage   addToast={addToast} />,
