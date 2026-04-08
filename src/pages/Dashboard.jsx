@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import Icon from '../components/Icon.jsx';
 import StockBar from '../components/StockBar.jsx';
 import SupplierChip from '../components/SupplierChip.jsx';
@@ -9,15 +9,18 @@ import { TODAY_SALES } from '../data/sales.js';
 import { fmt$, fmtNum } from '../utils/helpers.js';
 
 const Dashboard = ({ inventory, orders, onNavigate, addToast, posLastSync, setPosLastSync, setInventory }) => {
-  const [syncing, setSyncing] = useState(false);
-  const [syncResult, setSyncResult] = useState(null);
+  const [syncing, setSyncing]             = useState(false);
+  const [syncResult, setSyncResult]       = useState(null);
   const [showSyncModal, setShowSyncModal] = useState(false);
+  const syncTimerRef                      = useRef(null);
 
-  const lowStock = inventory.filter(i => i.currentStock < i.minStock);
+  // Clean up any pending timer on unmount
+  useEffect(() => () => clearTimeout(syncTimerRef.current), []);
+
+  const lowStock  = inventory.filter(i => i.currentStock < i.minStock);
   const totalValue = inventory.reduce((s, i) => s + i.currentStock * i.unitCost, 0);
-  const openOrders = orders.filter(o => o.status !== "Delivered" && o.status !== "Cancelled");
+  const openOrders = orders.filter(o => o.status !== 'Delivered' && o.status !== 'Cancelled');
 
-  // Calculate what today's Harbortouch sales would deduct
   const computeDeductions = useCallback(() => {
     const deduct = {};
     TODAY_SALES.forEach(sale => {
@@ -32,7 +35,7 @@ const Dashboard = ({ inventory, orders, onNavigate, addToast, posLastSync, setPo
 
   const handlePosSync = () => {
     setSyncing(true);
-    setTimeout(() => {
+    syncTimerRef.current = setTimeout(() => {
       const deductions = computeDeductions();
       const results = [];
       const newInv = inventory.map(item => {
@@ -48,22 +51,20 @@ const Dashboard = ({ inventory, orders, onNavigate, addToast, posLastSync, setPo
       setPosLastSync(new Date());
       setSyncing(false);
       setShowSyncModal(true);
-      // Fire Sling alerts for newly low items
       results.filter(r => r.wentLow).forEach(r => {
-        addToast({ type: "warn", channel: "#kitchen-mgmt", msg: `⚠️ ${r.item.name} just dropped below minimum (${fmtNum(r.newStock)} ${r.item.unit} remaining). Reorder from ${r.item.supplier}.` });
+        addToast({ type: 'warn', channel: '#kitchen-mgmt', msg: `⚠️ ${r.item.name} just dropped below minimum (${fmtNum(r.newStock)} ${r.item.unit} remaining). Reorder from ${r.item.supplier}.` });
       });
-      // Daily summary toast
       const totalSalesQty = TODAY_SALES.reduce((s, t) => s + t.qty, 0);
-      addToast({ type: "success", channel: "#daily-ops", msg: `✅ Harbortouch synced — ${totalSalesQty} covers tonight. Inventory updated.` });
+      addToast({ type: 'success', channel: '#daily-ops', msg: `✅ Harbortouch synced — ${totalSalesQty} covers tonight. Inventory updated.` });
     }, 1600);
   };
 
   const activity = [
-    { text: "PO-2026-041 from US Foods is in transit",      time: "2h ago", dot: "bg-blue-400" },
-    { text: "Fresh Basil dropped below minimum stock level", time: "4h ago", dot: "bg-amber-400" },
-    { text: "PO-2026-042 from US Foods delivered",           time: "1d ago", dot: "bg-emerald-400" },
-    { text: "Burrata at 83% of minimum threshold",           time: "1d ago", dot: "bg-amber-400" },
-    { text: "New PO-2026-040 submitted to Sam's Club",       time: "2d ago", dot: "bg-blue-400" },
+    { text: 'PO-2026-041 from US Foods is in transit',      time: '2h ago', dot: 'bg-blue-400' },
+    { text: 'Fresh Basil dropped below minimum stock level', time: '4h ago', dot: 'bg-amber-400' },
+    { text: 'PO-2026-042 from US Foods delivered',           time: '1d ago', dot: 'bg-emerald-400' },
+    { text: 'Burrata at 83% of minimum threshold',           time: '1d ago', dot: 'bg-amber-400' },
+    { text: 'New PO-2026-040 submitted to Sam\'s Club',      time: '2d ago', dot: 'bg-blue-400' },
   ];
 
   return (
@@ -73,15 +74,13 @@ const Dashboard = ({ inventory, orders, onNavigate, addToast, posLastSync, setPo
           <h1 className="text-2xl font-bold text-stone-800">Dashboard</h1>
           <p className="text-stone-400 text-sm mt-0.5">Sunday, March 29, 2026</p>
         </div>
-        {/* POS Sync button */}
         <button onClick={handlePosSync} disabled={syncing}
           className="flex items-center gap-2 px-4 py-2.5 bg-stone-800 hover:bg-stone-900 disabled:opacity-60 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm shrink-0">
-          <Icon name={syncing ? "sync" : "pos"} className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
-          {syncing ? "Syncing…" : "Sync Harbortouch"}
+          <Icon name={syncing ? 'sync' : 'pos'} className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+          {syncing ? 'Syncing…' : 'Sync Harbortouch'}
         </button>
       </div>
 
-      {/* Harbortouch status bar */}
       <div className="bg-stone-800 rounded-xl px-4 py-3 flex items-center gap-3">
         <div className="p-1.5 bg-stone-700 rounded-lg"><Icon name="pos" className="w-4 h-4 text-orange-400" /></div>
         <div className="flex-1">
@@ -89,10 +88,10 @@ const Dashboard = ({ inventory, orders, onNavigate, addToast, posLastSync, setPo
           <p className="text-stone-400 text-xs">
             {posLastSync
               ? `Last synced ${posLastSync.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} — inventory auto-updated from tonight's sales`
-              : "Not yet synced today — click Sync Harbortouch to pull tonight's sales"}
+              : 'Not yet synced today — click Sync Harbortouch to pull tonight\'s sales'}
           </p>
         </div>
-        <div className={`w-2 h-2 rounded-full shrink-0 ${posLastSync ? "bg-emerald-400" : "bg-amber-400"}`} />
+        <div className={`w-2 h-2 rounded-full shrink-0 ${posLastSync ? 'bg-emerald-400' : 'bg-amber-400'}`} />
       </div>
 
       {lowStock.length > 0 && (
@@ -101,21 +100,20 @@ const Dashboard = ({ inventory, orders, onNavigate, addToast, posLastSync, setPo
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-amber-800">{lowStock.length} items below minimum stock</p>
             <p className="text-xs text-amber-600 mt-0.5 truncate">
-              {lowStock.slice(0, 4).map(i => i.name).join(", ")}{lowStock.length > 4 ? ` +${lowStock.length - 4} more` : ""}
+              {lowStock.slice(0, 4).map(i => i.name).join(', ')}{lowStock.length > 4 ? ` +${lowStock.length - 4} more` : ''}
             </p>
           </div>
-          <button onClick={() => onNavigate("inventory")} className="text-xs font-semibold text-amber-700 hover:text-amber-900 whitespace-nowrap">View All →</button>
+          <button onClick={() => onNavigate('inventory')} className="text-xs font-semibold text-amber-700 hover:text-amber-900 whitespace-nowrap">View All →</button>
         </div>
       )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard title="Total SKUs"       value={inventory.length}    subtitle="Across 6 categories"  icon="inventory" variant="orange" onClick={() => onNavigate("inventory", {})} />
-        <KpiCard title="Low Stock Alerts" value={lowStock.length}     subtitle="Need reordering"      icon="alert"     variant="red"    onClick={() => onNavigate("inventory", { lowStockOnly: true })} />
-        <KpiCard title="Inventory Value"  value={fmt$(totalValue)}    subtitle="At current cost"      icon="dollar"    variant="green"  onClick={() => onNavigate("inventory", { sortBy: "value-desc" })} />
-        <KpiCard title="Open Orders"      value={openOrders.length}   subtitle="Sam's Club + US Foods" icon="truck"    variant="blue"   onClick={() => onNavigate("orders", { status: "active" })} />
+        <KpiCard title="Total SKUs"       value={inventory.length}    subtitle="Across 6 categories"   icon="inventory" variant="orange" onClick={() => onNavigate('inventory', {})} />
+        <KpiCard title="Low Stock Alerts" value={lowStock.length}     subtitle="Need reordering"        icon="alert"     variant="red"    onClick={() => onNavigate('inventory', { lowStockOnly: true })} />
+        <KpiCard title="Inventory Value"  value={fmt$(totalValue)}    subtitle="At current cost"        icon="dollar"    variant="green"  onClick={() => onNavigate('inventory', { sortBy: 'value-desc' })} />
+        <KpiCard title="Open Orders"      value={openOrders.length}   subtitle="Sam's Club + US Foods"  icon="truck"     variant="blue"   onClick={() => onNavigate('orders', { status: 'active' })} />
       </div>
 
-      {/* Today's POS sales summary */}
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-stone-100">
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -147,7 +145,7 @@ const Dashboard = ({ inventory, orders, onNavigate, addToast, posLastSync, setPo
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-stone-100">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-stone-700">Low Stock Items</h2>
-            <button onClick={() => onNavigate("inventory")} className="text-xs text-orange-600 hover:text-orange-800 font-medium">View All</button>
+            <button onClick={() => onNavigate('inventory')} className="text-xs text-orange-600 hover:text-orange-800 font-medium">View All</button>
           </div>
           <div className="space-y-3">
             {lowStock.length === 0

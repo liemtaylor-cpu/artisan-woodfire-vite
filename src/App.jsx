@@ -5,6 +5,7 @@ import { api } from './utils/api';
 import Sidebar from './components/Sidebar';
 import MobileNav from './components/MobileNav';
 import ToastContainer from './components/ToastContainer';
+import ErrorBoundary from './components/ErrorBoundary';
 import Dashboard from './pages/Dashboard';
 import LiveSalesPage from './pages/LiveSalesPage';
 import AnalyticsPage from './pages/AnalyticsPage';
@@ -93,7 +94,9 @@ const App = () => {
           <Sidebar current={page} onNav={setPage} alertCount={alertCount} slingCount={slingCount} />
         </div>
         <main className="flex-1 overflow-auto bg-stone-50">
-          <div className="max-w-6xl mx-auto p-4 lg:p-8 pb-24 lg:pb-8">{pages[page]}</div>
+          <div className="max-w-6xl mx-auto p-4 lg:p-8 pb-24 lg:pb-8">
+            <ErrorBoundary key={page}>{pages[page]}</ErrorBoundary>
+          </div>
         </main>
       </div>
       <MobileNav current={page} onNav={setPage} alertCount={alertCount} />

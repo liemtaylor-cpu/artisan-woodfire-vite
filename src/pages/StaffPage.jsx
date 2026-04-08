@@ -1,31 +1,69 @@
 import { useState } from 'react';
-import { STAFF, TODAY_SHIFTS, SLING_MESSAGES } from '../data/staff';
+import { STAFF, TODAY_SHIFTS } from '../data/staff';
 import { TODAY_SALES } from '../data/sales';
 import { RECIPES } from '../data/recipes';
 import { fmt$ } from '../utils/helpers';
+import { api } from '../utils/api';
 import KpiCard from '../components/KpiCard';
 import Icon from '../components/Icon';
 
+const QUICK_MESSAGES = [
+  "Kitchen staff: mise en place starts at 2:30 PM sharp.",
+  "All servers: pre-shift meeting at 3:45 PM.",
+  "Reminder: wood restock before service — check the back.",
+  "Tonight's 86 list will be posted by 4 PM. Check the board.",
+];
+
 const StaffPage = ({ addToast, slingCount, setSlingCount }) => {
-  const [sentIdx, setSentIdx] = useState(0);
+  const [sentIdx, setSentIdx]     = useState(0);
+  const [sending, setSending]     = useState(false);
+  const [customMsg, setCustomMsg] = useState('');
+  const [showCustom, setShowCustom] = useState(false);
 
   const shifts = TODAY_SHIFTS.map(s => ({ ...s, staff: STAFF.find(x => x.id === s.staffId) }));
   const laborToday = shifts.reduce((sum, s) => sum + (s.staff?.rate || 0) * s.hours, 0);
   const todayRev = TODAY_SALES.reduce((sum, s) => { const r = RECIPES.find(x => x.id === s.recipeId); return sum + (r?.price || 0) * s.qty; }, 0);
   const laborPct = todayRev > 0 ? (laborToday / todayRev * 100).toFixed(1) : 0;
-  const onClock = shifts.length;
 
-  const sendAlert = () => {
-    const msg = SLING_MESSAGES[sentIdx % SLING_MESSAGES.length];
-    addToast({ type: "info", channel: "Sling", msg });
+  const sendAlert = async (message) => {
+    setSending(true);
+    try {
+      const result = await api.sendSlingAlert(message);
+      if (result.sent) {
+        addToast({ type: 'info', channel: 'Sling', msg: message });
+        setSlingCount(n => n + 1);
+      }
+    } catch (err) {
+      // If Sling isn't configured yet, fall back gracefully
+      if (err.message?.includes('not configured')) {
+        addToast({ type: 'info', channel: 'Sling (local)', msg: message });
+        setSlingCount(n => n + 1);
+      } else {
+        addToast({ type: 'alert', channel: 'Sling', msg: `Send failed: ${err.message}` });
+      }
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const sendQuick = () => {
+    const msg = QUICK_MESSAGES[sentIdx % QUICK_MESSAGES.length];
     setSentIdx(i => i + 1);
+    sendAlert(msg);
+  };
+
+  const sendCustom = () => {
+    if (!customMsg.trim()) return;
+    sendAlert(customMsg.trim());
+    setCustomMsg('');
+    setShowCustom(false);
   };
 
   const roleColor = (role) => {
-    if (role.includes("Chef"))   return "bg-orange-100 text-orange-700";
-    if (role.includes("Server")) return "bg-blue-100 text-blue-700";
-    if (role.includes("Host"))   return "bg-purple-100 text-purple-700";
-    return "bg-stone-100 text-stone-600";
+    if (role.includes('Chef'))   return 'bg-orange-100 text-orange-700';
+    if (role.includes('Server')) return 'bg-blue-100 text-blue-700';
+    if (role.includes('Host'))   return 'bg-purple-100 text-purple-700';
+    return 'bg-stone-100 text-stone-600';
   };
 
   return (
@@ -35,18 +73,47 @@ const StaffPage = ({ addToast, slingCount, setSlingCount }) => {
           <h1 className="text-2xl font-bold text-stone-800">Staff</h1>
           <p className="text-stone-400 text-sm mt-0.5">Sling scheduling · Monday March 30, 2026</p>
         </div>
-        <button onClick={sendAlert}
-          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm">
-          <Icon name="sling" className="w-4 h-4" />
-          Send Sling Alert
-        </button>
+        <div className="flex items-center gap-2">
+          {showCustom ? (
+            <>
+              <input
+                value={customMsg}
+                onChange={e => setCustomMsg(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && sendCustom()}
+                placeholder="Custom message…"
+                className="border border-stone-200 rounded-xl px-3 py-2 text-sm text-stone-700 focus:outline-none focus:ring-2 focus:ring-blue-300 w-56"
+                autoFocus
+              />
+              <button onClick={sendCustom} disabled={sending || !customMsg.trim()}
+                className="px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors">
+                Send
+              </button>
+              <button onClick={() => setShowCustom(false)}
+                className="px-3 py-2 border border-stone-200 rounded-xl text-sm text-stone-500 hover:bg-stone-50 transition-colors">
+                Cancel
+              </button>
+            </>
+          ) : (
+            <>
+              <button onClick={() => setShowCustom(true)}
+                className="px-3 py-2.5 border border-blue-200 text-blue-600 hover:bg-blue-50 text-sm font-semibold rounded-xl transition-colors">
+                Custom
+              </button>
+              <button onClick={sendQuick} disabled={sending}
+                className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm">
+                <Icon name={sending ? 'sync' : 'sling'} className={`w-4 h-4 ${sending ? 'animate-spin' : ''}`} />
+                {sending ? 'Sending…' : 'Send Sling Alert'}
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard title="On Clock Today" value={onClock}          subtitle={`of ${STAFF.length} total staff`}                                                    icon="dashboard" variant="orange" />
-        <KpiCard title="Labor Cost"     value={fmt$(laborToday)} subtitle="Today's shifts"                                                                      icon="inventory"  variant="blue" />
-        <KpiCard title="Labor %"        value={`${laborPct}%`}   subtitle={`Target <30% · ${Number(laborPct) < 30 ? "On target" : "Above target"}`}             icon="forecast"   variant={Number(laborPct) < 30 ? "green" : "red"} />
-        <KpiCard title="Sling Alerts"   value={slingCount}       subtitle="Sent this session"                                                                   icon="sling"      variant="blue" />
+        <KpiCard title="On Clock Today" value={shifts.length}      subtitle={`of ${STAFF.length} total staff`}                                                    icon="dashboard" variant="orange" />
+        <KpiCard title="Labor Cost"     value={fmt$(laborToday)}   subtitle="Today's shifts"                                                                      icon="inventory"  variant="blue" />
+        <KpiCard title="Labor %"        value={`${laborPct}%`}     subtitle={`Target <30% · ${Number(laborPct) < 30 ? 'On target' : 'Above target'}`}             icon="forecast"   variant={Number(laborPct) < 30 ? 'green' : 'red'} />
+        <KpiCard title="Sling Alerts"   value={slingCount}         subtitle="Sent this session"                                                                   icon="sling"      variant="blue" />
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden">
@@ -71,7 +138,7 @@ const StaffPage = ({ addToast, slingCount, setSlingCount }) => {
                 <tr key={i} className="hover:bg-stone-50 transition-colors">
                   <td className="px-5 py-3 font-medium text-stone-800">{s.staff?.name}</td>
                   <td className="px-4 py-3">
-                    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${roleColor(s.staff?.role || "")}`}>{s.staff?.role}</span>
+                    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${roleColor(s.staff?.role || '')}`}>{s.staff?.role}</span>
                   </td>
                   <td className="px-4 py-3 text-right text-stone-600">{s.start}</td>
                   <td className="px-4 py-3 text-right text-stone-600">{s.end}</td>
@@ -99,16 +166,16 @@ const StaffPage = ({ addToast, slingCount, setSlingCount }) => {
         <h2 className="font-semibold text-stone-700 mb-4">Full Roster</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {STAFF.map(s => (
-            <div key={s.id} className={`rounded-xl border p-4 flex items-start gap-3 ${s.status === "active" ? "border-stone-100" : "border-stone-100 opacity-50"}`}>
+            <div key={s.id} className={`rounded-xl border p-4 flex items-start gap-3 ${s.status === 'active' ? 'border-stone-100' : 'border-stone-100 opacity-50'}`}>
               <div className="w-9 h-9 rounded-full bg-orange-100 flex items-center justify-center shrink-0 text-orange-700 font-bold text-sm">
-                {s.name.split(" ").map(n => n[0]).join("")}
+                {s.name.split(' ').map(n => n[0]).join('')}
               </div>
               <div className="min-w-0 flex-1">
                 <p className="font-medium text-stone-800 text-sm">{s.name}</p>
                 <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-medium ${roleColor(s.role)}`}>{s.role}</span>
                 <p className="text-xs text-stone-400 mt-1">{s.phone} · ${s.rate}/hr</p>
               </div>
-              <div className={`w-2 h-2 rounded-full mt-1 shrink-0 ${s.status === "active" ? "bg-emerald-400" : "bg-stone-300"}`} />
+              <div className={`w-2 h-2 rounded-full mt-1 shrink-0 ${s.status === 'active' ? 'bg-emerald-400' : 'bg-stone-300'}`} />
             </div>
           ))}
         </div>

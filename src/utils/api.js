@@ -1,8 +1,15 @@
 const BASE = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : '/api';
 
+function getHeaders() {
+  const headers = { 'Content-Type': 'application/json' };
+  const key = import.meta.env.VITE_API_KEY;
+  if (key) headers['X-API-Key'] = key;
+  return headers;
+}
+
 async function request(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
+    headers: getHeaders(),
     ...options,
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
@@ -30,7 +37,9 @@ export const api = {
   syncSales: () => request('/sales/sync', { method: 'POST' }),
 
   // Staff
-  getStaff: () => request('/staff'),
+  getStaff:       ()        => request('/staff'),
+  sendSlingAlert: (message) => request('/staff/alert', { method: 'POST', body: { message } }),
+  getLiveShifts:  ()        => request('/staff/shifts/live'),
 
   // Duties
   getDuties:  ()       => request('/duties'),
@@ -39,4 +48,14 @@ export const api = {
   // Competencies
   getCompetencies:  ()     => request('/competencies'),
   saveCompetencies: (data) => request('/competencies', { method: 'POST', body: data }),
+
+  // Settings
+  getSettings:  ()        => request('/settings'),
+  saveSettings: (payload) => request('/settings', { method: 'POST', body: payload }),
+
+  // Auth
+  authStaff: (password) => request('/auth/staff', { method: 'POST', body: { password } }),
+
+  // Health
+  health: () => request('/health'),
 };

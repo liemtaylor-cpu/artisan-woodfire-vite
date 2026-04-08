@@ -3,7 +3,8 @@ import { api } from '../utils/api';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const PASSWORD = 'woodfire';
+// Password is validated server-side via POST /api/auth/staff.
+// No secret is stored in this file.
 const AUTH_KEY = 'awk_competency_auth';
 
 const STAFF_LIST = [
@@ -238,14 +239,21 @@ function PasswordGate({ onAuth }) {
 
   useEffect(() => { ref.current?.focus(); }, []);
 
-  const attempt = () => {
-    if (input === PASSWORD) {
+  const [checking, setChecking] = useState(false);
+
+  const attempt = async () => {
+    if (!input || checking) return;
+    setChecking(true);
+    try {
+      await api.authStaff(input);
       localStorage.setItem(AUTH_KEY, '1');
       onAuth();
-    } else {
+    } catch {
       setError(true);
       setInput('');
       setTimeout(() => setError(false), 1500);
+    } finally {
+      setChecking(false);
     }
   };
 
@@ -277,9 +285,10 @@ function PasswordGate({ onAuth }) {
         {error && <p className="text-xs text-red-500 text-center font-medium">Incorrect password — try again</p>}
         <button
           onClick={attempt}
-          className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 rounded-xl text-sm transition-colors"
+          disabled={checking}
+          className="w-full bg-orange-600 hover:bg-orange-700 disabled:opacity-60 text-white font-semibold py-3 rounded-xl text-sm transition-colors"
         >
-          Unlock
+          {checking ? 'Checking…' : 'Unlock'}
         </button>
       </div>
     </div>
@@ -293,6 +302,9 @@ const StaffCompetencyPage = ({ addToast }) => {
   const [view, setView]       = useState('roster');   // 'roster' | 'shifts'
   const [comps, setComps]     = useState(DEFAULT_COMPETENCIES);
   const saveTimer             = useRef(null);
+
+  // Clean up debounced save timer on unmount
+  useEffect(() => () => clearTimeout(saveTimer.current), []);
 
   useEffect(() => {
     if (!authed) return;
