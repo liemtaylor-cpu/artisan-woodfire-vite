@@ -76,4 +76,7 @@ export const api = {
 
   // Forecasting
   getUsageData: () => request('/forecasting/usage'),
+
+  // AI
+  aiChat: (messages, role) => request('/ai/chat', { method: 'POST', body: { messages, role } }),
 };

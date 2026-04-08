@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-
-const BASE_URL = import.meta.env.VITE_API_URL || 'https://artisan-woodfire-api.vercel.app/api';
+import { api } from '../utils/api';
 
 const WELCOME = {
   owner:   "Hi! I'm your operations assistant. I have live access to your staff, inventory, sales, and menu. Ask me anything — or say \"generate a schedule\" to build a weekly rota.",
@@ -72,21 +71,7 @@ const AiChat = ({ role }) => {
     const apiMessages = history.map(m => ({ role: m.role, content: m.content }));
 
     try {
-      const key = import.meta.env.VITE_API_KEY;
-      const headers = { 'Content-Type': 'application/json' };
-      if (key) headers['X-API-Key'] = key;
-
-      const response = await fetch(`${BASE_URL}/ai/chat`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ messages: apiMessages, role }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || data.error) {
-        throw new Error(data.error || `Error ${response.status}`);
-      }
+      const data = await api.aiChat(apiMessages, role);
 
       setMessages(prev => {
         const copy = [...prev];
