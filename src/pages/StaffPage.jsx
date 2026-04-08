@@ -11,7 +11,7 @@ const QUICK_MESSAGES = [
   "Tonight's 86 list will be posted by 4 PM. Check the board.",
 ];
 
-const StaffPage = ({ addToast, slingCount, setSlingCount }) => {
+const StaffPage = ({ addToast, slingCount, setSlingCount, hidePayRates = false }) => {
   const [sentIdx, setSentIdx]     = useState(0);
   const [sending, setSending]     = useState(false);
   const [customMsg, setCustomMsg] = useState('');
@@ -127,8 +127,8 @@ const StaffPage = ({ addToast, slingCount, setSlingCount }) => {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard title="On Clock Today" value={enrichedShifts.length}      subtitle={`of ${staff.length} total staff`}                                                    icon="dashboard" variant="orange" />
-        <KpiCard title="Labor Cost"     value={fmt$(laborToday)}   subtitle="Today's shifts"                                                                      icon="inventory"  variant="blue" />
-        <KpiCard title="Labor %"        value={`${laborPct}%`}     subtitle={`Target <30% · ${Number(laborPct) < 30 ? 'On target' : 'Above target'}`}             icon="forecast"   variant={Number(laborPct) < 30 ? 'green' : 'red'} />
+        {!hidePayRates && <KpiCard title="Labor Cost"     value={fmt$(laborToday)}   subtitle="Today's shifts"                                                             icon="inventory"  variant="blue" />}
+        {!hidePayRates && <KpiCard title="Labor %"        value={`${laborPct}%`}     subtitle={`Target <30% · ${Number(laborPct) < 30 ? 'On target' : 'Above target'}`}   icon="forecast"   variant={Number(laborPct) < 30 ? 'green' : 'red'} />}
         <KpiCard title="Sling Alerts"   value={slingCount}         subtitle="Sent this session"                                                                   icon="sling"      variant="blue" />
       </div>
 
@@ -145,7 +145,7 @@ const StaffPage = ({ addToast, slingCount, setSlingCount }) => {
                 <th className="px-4 py-3 text-right">Start</th>
                 <th className="px-4 py-3 text-right">End</th>
                 <th className="px-4 py-3 text-right">Hours</th>
-                <th className="px-4 py-3 text-right">Labor Cost</th>
+                {!hidePayRates && <th className="px-4 py-3 text-right">Labor Cost</th>}
                 <th className="px-4 py-3 text-right">Status</th>
               </tr>
             </thead>
@@ -159,7 +159,7 @@ const StaffPage = ({ addToast, slingCount, setSlingCount }) => {
                   <td className="px-4 py-3 text-right text-stone-600">{s.start}</td>
                   <td className="px-4 py-3 text-right text-stone-600">{s.end}</td>
                   <td className="px-4 py-3 text-right text-stone-700">{s.hours}h</td>
-                  <td className="px-4 py-3 text-right font-medium text-stone-700">{fmt$((s.staff?.rate || 0) * s.hours)}</td>
+                  {!hidePayRates && <td className="px-4 py-3 text-right font-medium text-stone-700">{fmt$((s.staff?.rate || 0) * s.hours)}</td>}
                   <td className="px-4 py-3 text-right">
                     <span className="inline-block px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-600">Scheduled</span>
                   </td>
@@ -170,7 +170,7 @@ const StaffPage = ({ addToast, slingCount, setSlingCount }) => {
               <tr className="bg-stone-50 font-bold text-stone-800 border-t-2 border-stone-200">
                 <td className="px-5 py-3" colSpan={4}>Total</td>
                 <td className="px-4 py-3 text-right">{enrichedShifts.reduce((a, s) => a + s.hours, 0)}h</td>
-                <td className="px-4 py-3 text-right">{fmt$(laborToday)}</td>
+                {!hidePayRates && <td className="px-4 py-3 text-right">{fmt$(laborToday)}</td>}
                 <td />
               </tr>
             </tfoot>
@@ -189,7 +189,7 @@ const StaffPage = ({ addToast, slingCount, setSlingCount }) => {
               <div className="min-w-0 flex-1">
                 <p className="font-medium text-stone-800 text-sm">{s.name}</p>
                 <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-medium ${roleColor(s.role)}`}>{s.role}</span>
-                <p className="text-xs text-stone-400 mt-1">{s.phone} · ${s.rate}/hr</p>
+                <p className="text-xs text-stone-400 mt-1">{s.phone}{!hidePayRates ? ` · $${s.rate}/hr` : ''}</p>
               </div>
               <div className={`w-2 h-2 rounded-full mt-1 shrink-0 ${s.status === 'active' ? 'bg-emerald-400' : 'bg-stone-300'}`} />
             </div>

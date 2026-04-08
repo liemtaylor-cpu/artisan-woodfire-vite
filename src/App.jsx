@@ -6,6 +6,8 @@ import Sidebar from './components/Sidebar';
 import MobileNav from './components/MobileNav';
 import ToastContainer from './components/ToastContainer';
 import ErrorBoundary from './components/ErrorBoundary';
+import LoginPage from './pages/LoginPage';
+import EmployeePage from './pages/EmployeePage';
 import Dashboard from './pages/Dashboard';
 import LiveSalesPage from './pages/LiveSalesPage';
 import AnalyticsPage from './pages/AnalyticsPage';
@@ -21,8 +23,24 @@ import TransactionsPage from './pages/TransactionsPage';
 
 let toastId = 0;
 
+const ROLE_PAGES = {
+  owner:    ['dashboard','sales','analytics','staff','settings','inventory','recipes','orders','forecasting','duties','competency','transactions'],
+  manager:  ['dashboard','sales','analytics','staff','inventory','recipes','orders','forecasting','duties','competency','transactions'],
+  employee: ['employee','duties','recipes'],
+};
+
+const DEFAULT_PAGE = {
+  owner:    'dashboard',
+  manager:  'dashboard',
+  employee: 'employee',
+};
+
 const App = () => {
-  const [page, setPage] = useState("dashboard");
+  const [role, setRole] = useState(() => localStorage.getItem('artisan_role') || null);
+  const [page, setPage] = useState(() => {
+    const savedRole = localStorage.getItem('artisan_role');
+    return DEFAULT_PAGE[savedRole] || 'dashboard';
+  });
   const [pageCtx, setPageCtx] = useState({});
   const [inventory, setInventory] = useState(INITIAL_INVENTORY);
   const [orders, setOrders] = useState(INITIAL_ORDERS);
@@ -44,7 +62,30 @@ const App = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  const navigateTo = useCallback((p, ctx = {}) => { setPage(p); setPageCtx(ctx); }, []);
+  const handleLogin = (r) => {
+    setRole(r);
+    setPage(DEFAULT_PAGE[r] || 'dashboard');
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('artisan_role');
+    setRole(null);
+    setPage('dashboard');
+  };
+
+  const navigateTo = useCallback((p, ctx = {}) => {
+    setPage(p);
+    setPageCtx(ctx);
+  }, []);
+
+  // Guard navigation: only allow pages the current role can access
+  const safeNav = useCallback((p, ctx = {}) => {
+    const allowed = ROLE_PAGES[role] || [];
+    if (allowed.includes(p)) {
+      setPage(p);
+      setPageCtx(ctx);
+    }
+  }, [role]);
 
   const addToast = useCallback(({ type, channel, msg }) => {
     const id = ++toastId;
@@ -63,6 +104,9 @@ const App = () => {
 
   const alertCount = inventory.filter(i => i.currentStock < i.minStock).length;
 
+  // Show login if no role
+  if (!role) return <LoginPage onLogin={handleLogin} />;
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-stone-50">
@@ -74,11 +118,14 @@ const App = () => {
     );
   }
 
+  const allowedPages = ROLE_PAGES[role] || [];
+
   const pages = {
+    employee:    <EmployeePage   inventory={inventory} onNavigate={safeNav} />,
     dashboard:   <Dashboard      inventory={inventory} orders={orders} onNavigate={navigateTo} addToast={addToast} posLastSync={posLastSync} setPosLastSync={setPosLastSync} setInventory={setInventory} />,
     sales:       <LiveSalesPage  inventory={inventory} addToast={addToast} setPosLastSync={setPosLastSync} setInventory={setInventory} />,
     analytics:   <AnalyticsPage  inventory={inventory} />,
-    staff:       <StaffPage      addToast={addToast} slingCount={slingCount} setSlingCount={setSlingCount} />,
+    staff:       <StaffPage      addToast={addToast} slingCount={slingCount} setSlingCount={setSlingCount} hidePayRates={role === 'manager'} />,
     settings:    <SettingsPage   addToast={addToast} />,
     inventory:   <InventoryPage  key={JSON.stringify(pageCtx)} inventory={inventory} setInventory={setInventory} addToast={addToast} initCtx={pageCtx} />,
     recipes:     <RecipesPage    inventory={inventory} />,
@@ -89,19 +136,37 @@ const App = () => {
     transactions:  <TransactionsPage    addToast={addToast} />,
   };
 
+  // Ensure current page is valid for role; fall back to default
+  const activePage = allowedPages.includes(page) ? page : DEFAULT_PAGE[role];
+
   return (
     <>
       <div className="flex" style={{ minHeight: "100vh" }}>
         <div className="hidden lg:flex">
-          <Sidebar current={page} onNav={setPage} alertCount={alertCount} slingCount={slingCount} />
+          <Sidebar
+            current={activePage}
+            onNav={safeNav}
+            alertCount={alertCount}
+            slingCount={slingCount}
+            role={role}
+            allowedPages={allowedPages}
+            onLogout={handleLogout}
+          />
         </div>
         <main className="flex-1 overflow-auto bg-stone-50">
           <div className="max-w-6xl mx-auto p-4 lg:p-8 pb-24 lg:pb-8">
-            <ErrorBoundary key={page}>{pages[page]}</ErrorBoundary>
+            <ErrorBoundary key={activePage}>{pages[activePage]}</ErrorBoundary>
           </div>
         </main>
       </div>
-      <MobileNav current={page} onNav={setPage} alertCount={alertCount} />
+      <MobileNav
+        current={activePage}
+        onNav={safeNav}
+        alertCount={alertCount}
+        role={role}
+        allowedPages={allowedPages}
+        onLogout={handleLogout}
+      />
       <ToastContainer toasts={toasts} remove={removeToast} />
     </>
   );
