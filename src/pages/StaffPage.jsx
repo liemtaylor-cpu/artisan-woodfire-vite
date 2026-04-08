@@ -11,6 +11,21 @@ const QUICK_MESSAGES = [
   "Tonight's 86 list will be posted by 4 PM. Check the board.",
 ];
 
+const SKILLS = [
+  'Wood Fire Operation',
+  'Dough Prep',
+  'Pizza Assembly',
+  'Sauce & Toppings',
+  'Oven Management',
+  'Food Safety',
+  'Front of House',
+  'Cashier / POS',
+  'Food Running',
+  'Dishwashing',
+];
+
+const ROLES = ['Head Pizza Chef','Sous Chef','Line Cook','Server','Host / Cashier','Dishwasher','Manager','Prep Cook'];
+
 const StaffPage = ({ addToast, slingCount, setSlingCount, hidePayRates = false }) => {
   const [sentIdx, setSentIdx]     = useState(0);
   const [sending, setSending]     = useState(false);
@@ -21,6 +36,11 @@ const StaffPage = ({ addToast, slingCount, setSlingCount, hidePayRates = false }
   const [salesRaw, setSalesRaw]   = useState([]);
   const [recipes, setRecipes]     = useState([]);
   const [loading, setLoading]     = useState(true);
+
+  const [editingStaff, setEditingStaff] = useState(null);
+  const [editForm, setEditForm]         = useState({});
+  const [saving, setSaving]             = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   useEffect(() => {
     Promise.all([api.getStaff(), api.getSales(), api.getRecipes()])
@@ -38,6 +58,53 @@ const StaffPage = ({ addToast, slingCount, setSlingCount, hidePayRates = false }
   const laborToday = enrichedShifts.reduce((sum, s) => sum + (s.staff?.rate || 0) * s.hours, 0);
   const todayRev = salesRaw.reduce((sum, s) => { const r = recipes.find(x => x.id === s.recipeId); return sum + (r?.price || 0) * s.qty; }, 0);
   const laborPct = todayRev > 0 ? (laborToday / todayRev * 100).toFixed(1) : 0;
+
+  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+  const openEdit = (s) => {
+    setEditingStaff(s);
+    setEditForm({ name: s.name, role: s.role, phone: s.phone, rate: s.rate, status: s.status, skills: s.skills || [] });
+  };
+
+  const saveEdit = async () => {
+    setSaving(true);
+    try {
+      const updated = await api.updateStaff(editingStaff.id, editForm);
+      setStaff(prev => prev.map(s => s.id === editingStaff.id ? { ...s, ...updated } : s));
+      setEditingStaff(null);
+      addToast({ type: 'success', channel: 'Staff', msg: `${editForm.name} updated.` });
+    } catch {
+      addToast({ type: 'alert', channel: 'Staff', msg: 'Save failed.' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveNew = async () => {
+    setSaving(true);
+    try {
+      const created = await api.addStaff(editForm);
+      setStaff(prev => [...prev, created]);
+      setShowAddModal(false);
+      setEditForm({});
+      addToast({ type: 'success', channel: 'Staff', msg: `${created.name} added to roster.` });
+    } catch {
+      addToast({ type: 'alert', channel: 'Staff', msg: 'Failed to add employee.' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteEmployee = async (id, name) => {
+    if (!window.confirm(`Remove ${name} from roster?`)) return;
+    try {
+      await api.deleteStaff(id);
+      setStaff(prev => prev.filter(s => s.id !== id));
+      addToast({ type: 'info', channel: 'Staff', msg: `${name} removed from roster.` });
+    } catch {
+      addToast({ type: 'alert', channel: 'Staff', msg: 'Delete failed.' });
+    }
+  };
 
   const sendAlert = async (message) => {
     setSending(true);
@@ -87,7 +154,7 @@ const StaffPage = ({ addToast, slingCount, setSlingCount, hidePayRates = false }
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-stone-800">Staff</h1>
-          <p className="text-stone-400 text-sm mt-0.5">Sling scheduling · Monday March 30, 2026</p>
+          <p className="text-stone-400 text-sm mt-0.5">Sling scheduling · {today}</p>
         </div>
         <div className="flex items-center gap-2">
           {showCustom ? (
@@ -111,6 +178,10 @@ const StaffPage = ({ addToast, slingCount, setSlingCount, hidePayRates = false }
             </>
           ) : (
             <>
+              <button onClick={() => { setShowAddModal(true); setEditForm({ name: '', role: '', phone: '', rate: 15, status: 'active', skills: [] }); }}
+                className="px-3 py-2.5 border border-stone-200 text-stone-600 hover:bg-stone-50 text-sm font-semibold rounded-xl transition-colors">
+                + Add
+              </button>
               <button onClick={() => setShowCustom(true)}
                 className="px-3 py-2.5 border border-blue-200 text-blue-600 hover:bg-blue-50 text-sm font-semibold rounded-xl transition-colors">
                 Custom
@@ -190,12 +261,104 @@ const StaffPage = ({ addToast, slingCount, setSlingCount, hidePayRates = false }
                 <p className="font-medium text-stone-800 text-sm">{s.name}</p>
                 <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-medium ${roleColor(s.role)}`}>{s.role}</span>
                 <p className="text-xs text-stone-400 mt-1">{s.phone}{!hidePayRates ? ` · $${s.rate}/hr` : ''}</p>
+                {s.skills && s.skills.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {s.skills.slice(0, 3).map(sk => (
+                      <span key={sk} className="text-xs bg-stone-100 text-stone-500 px-1.5 py-0.5 rounded">{sk}</span>
+                    ))}
+                    {s.skills.length > 3 && <span className="text-xs text-stone-400">+{s.skills.length - 3}</span>}
+                  </div>
+                )}
               </div>
-              <div className={`w-2 h-2 rounded-full mt-1 shrink-0 ${s.status === 'active' ? 'bg-emerald-400' : 'bg-stone-300'}`} />
+              <div className="flex flex-col items-end gap-2">
+                <div className={`w-2 h-2 rounded-full ${s.status === 'active' ? 'bg-emerald-400' : 'bg-stone-300'}`} />
+                <button onClick={() => openEdit(s)} className="text-xs text-stone-400 hover:text-orange-600 transition-colors font-medium">Edit</button>
+                <button onClick={() => deleteEmployee(s.id, s.name)} className="text-xs text-stone-300 hover:text-red-500 transition-colors">✕</button>
+              </div>
             </div>
           ))}
         </div>
       </div>
+
+      {(editingStaff || showAddModal) && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-stone-800 text-lg">{editingStaff ? 'Edit Employee' : 'Add Employee'}</h3>
+              <button onClick={() => { setEditingStaff(null); setShowAddModal(false); }} className="text-stone-400 hover:text-stone-600">✕</button>
+            </div>
+            {/* Name */}
+            <div>
+              <label className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Name</label>
+              <input value={editForm.name || ''} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
+                className="mt-1 w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300" />
+            </div>
+            {/* Role */}
+            <div>
+              <label className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Role</label>
+              <select value={editForm.role || ''} onChange={e => setEditForm(f => ({ ...f, role: e.target.value }))}
+                className="mt-1 w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300">
+                <option value="">Select role…</option>
+                {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </div>
+            {/* Phone */}
+            <div>
+              <label className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Phone</label>
+              <input value={editForm.phone || ''} onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))}
+                className="mt-1 w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300" />
+            </div>
+            {/* Pay rate — only show if !hidePayRates */}
+            {!hidePayRates && (
+              <div>
+                <label className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Hourly Rate ($)</label>
+                <input type="number" min="0" step="0.50" value={editForm.rate || ''} onChange={e => setEditForm(f => ({ ...f, rate: parseFloat(e.target.value) || 0 }))}
+                  className="mt-1 w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300" />
+              </div>
+            )}
+            {/* Status */}
+            <div>
+              <label className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Status</label>
+              <select value={editForm.status || 'active'} onChange={e => setEditForm(f => ({ ...f, status: e.target.value }))}
+                className="mt-1 w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300">
+                <option value="active">Active</option>
+                <option value="off">Inactive</option>
+              </select>
+            </div>
+            {/* Skills */}
+            <div>
+              <label className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Skills</label>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {SKILLS.map(skill => (
+                  <label key={skill} className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox"
+                      checked={(editForm.skills || []).includes(skill)}
+                      onChange={e => setEditForm(f => ({
+                        ...f,
+                        skills: e.target.checked
+                          ? [...(f.skills || []), skill]
+                          : (f.skills || []).filter(s => s !== skill)
+                      }))}
+                      className="rounded text-orange-600 focus:ring-orange-300" />
+                    <span className="text-xs text-stone-600">{skill}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            {/* Actions */}
+            <div className="flex gap-2 pt-2">
+              <button onClick={() => { setEditingStaff(null); setShowAddModal(false); }}
+                className="flex-1 py-2.5 border border-stone-200 rounded-xl text-sm font-semibold text-stone-600 hover:bg-stone-50 transition-colors">
+                Cancel
+              </button>
+              <button onClick={editingStaff ? saveEdit : saveNew} disabled={saving || !editForm.name || !editForm.role}
+                className="flex-1 py-2.5 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-colors">
+                {saving ? 'Saving…' : editingStaff ? 'Save Changes' : 'Add Employee'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

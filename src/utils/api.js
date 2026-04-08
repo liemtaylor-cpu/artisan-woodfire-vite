@@ -40,6 +40,9 @@ export const api = {
   getStaff:       ()        => request('/staff'),
   sendSlingAlert: (message) => request('/staff/alert', { method: 'POST', body: { message } }),
   getLiveShifts:  ()        => request('/staff/shifts/live'),
+  updateStaff:    (id, data) => request(`/staff/${id}`, { method: 'PUT', body: data }),
+  addStaff:       (data)     => request('/staff', { method: 'POST', body: data }),
+  deleteStaff:    (id)       => request(`/staff/${id}`, { method: 'DELETE' }),
 
   // Duties
   getDuties:  ()       => request('/duties'),
