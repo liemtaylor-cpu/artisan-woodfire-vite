@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import AiChat from './components/AiChat';
 import { INITIAL_INVENTORY } from './data/inventory';
 import { INITIAL_ORDERS } from './data/orders';
 import { api } from './utils/api';
@@ -166,6 +167,7 @@ const App = () => {
         allowedPages={allowedPages}
         onLogout={handleLogout}
       />
+      <AiChat role={role} />
       <ToastContainer toasts={toasts} remove={removeToast} />
     </>
   );
