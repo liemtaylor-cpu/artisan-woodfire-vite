@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { api } from '../utils/api';
 import Icon from '../components/Icon';
+
+const POLL_INTERVAL = 15000; // refresh every 15 seconds while page is open
 
 const statusBadge = (tx) => {
   if (tx.test) return <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700">TEST</span>;
@@ -14,22 +16,37 @@ const formatTime = (iso) => {
 };
 
 const TransactionsPage = ({ addToast }) => {
-  const [txLog, setTxLog]     = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [txLog, setTxLog]       = useState([]);
+  const [loading, setLoading]   = useState(true);
   const [expanded, setExpanded] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const pollRef = useRef(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (silent = false) => {
     try {
       const data = await api.getTransactions();
-      setTxLog(Array.isArray(data) ? data : []);
+      setTxLog(prev => {
+        const next = Array.isArray(data) ? data : [];
+        // Show a toast only when a new transaction arrives silently
+        if (silent && next.length > prev.length) {
+          addToast({ type: 'success', channel: 'Transactions', msg: `New order received — ${next[0]?.transaction_id}` });
+        }
+        return next;
+      });
+      setLastUpdated(new Date());
     } catch (err) {
-      addToast({ type: 'alert', channel: 'Transactions', msg: `Failed to load: ${err.message}` });
+      if (!silent) addToast({ type: 'alert', channel: 'Transactions', msg: `Failed to load: ${err.message}` });
     } finally {
       setLoading(false);
     }
   }, [addToast]);
 
-  useEffect(() => { load(); }, [load]);
+  // Initial load + auto-poll every 15s
+  useEffect(() => {
+    load();
+    pollRef.current = setInterval(() => load(true), POLL_INTERVAL);
+    return () => clearInterval(pollRef.current);
+  }, [load]);
 
   const toggle = (id) => setExpanded(e => e === id ? null : id);
 
@@ -49,11 +66,16 @@ const TransactionsPage = ({ addToast }) => {
           <h1 className="text-2xl font-bold text-stone-800">POS Transactions</h1>
           <p className="text-stone-400 text-sm mt-0.5">Webhook events received from Shift4</p>
         </div>
-        <button onClick={load}
-          className="flex items-center gap-2 px-4 py-2.5 bg-stone-800 hover:bg-stone-900 text-white text-sm font-semibold rounded-xl transition-colors">
-          <Icon name="sync" className="w-4 h-4" />
-          Refresh
-        </button>
+        <div className="flex items-center gap-3">
+          {lastUpdated && (
+            <span className="text-xs text-stone-400">Updated {lastUpdated.toLocaleTimeString()}</span>
+          )}
+          <button onClick={() => load()}
+            className="flex items-center gap-2 px-4 py-2.5 bg-stone-800 hover:bg-stone-900 text-white text-sm font-semibold rounded-xl transition-colors">
+            <Icon name="sync" className="w-4 h-4" />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Stats row */}
@@ -144,9 +166,10 @@ const TransactionsPage = ({ addToast }) => {
                     )}
 
                     {/* Meta */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs text-stone-400">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-stone-400">
                       <div><span className="font-semibold text-stone-500">Event:</span> {tx.event}</div>
                       <div><span className="font-semibold text-stone-500">Location:</span> {tx.location_id || '—'}</div>
+                      <div><span className="font-semibold text-stone-500">Amount:</span> {tx.amount != null ? `$${tx.amount.toFixed(2)}` : '—'}</div>
                       <div><span className="font-semibold text-stone-500">Received:</span> {formatTime(tx.receivedAt)}</div>
                     </div>
                   </div>
