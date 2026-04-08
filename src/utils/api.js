@@ -35,4 +35,8 @@ export const api = {
   // Duties
   getDuties:  ()       => request('/duties'),
   saveDuties: (checks) => request('/duties', { method: 'POST', body: checks }),
+
+  // Competencies
+  getCompetencies:  ()     => request('/competencies'),
+  saveCompetencies: (data) => request('/competencies', { method: 'POST', body: data }),
 };
