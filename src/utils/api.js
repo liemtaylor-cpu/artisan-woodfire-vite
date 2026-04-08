@@ -58,4 +58,7 @@ export const api = {
 
   // Health
   health: () => request('/health'),
+
+  // Test webhook — fires a simulated POS order through the full pipeline
+  testWebhook: (items) => request('/webhook/test', { method: 'POST', body: items ? { items } : {} }),
 };
