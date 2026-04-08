@@ -16,8 +16,9 @@ const MobileNav = ({ current, onNav, alertCount }) => {
     { id: "orders",      label: "Orders",      icon: "orders" },
     { id: "forecasting", label: "Forecasting", icon: "forecast" },
     { id: "duties",      label: "Duties",      icon: "orders" },
-    { id: "competency",  label: "Competency",  icon: "check"  },
-    { id: "settings",    label: "Settings",    icon: "pos" },
+    { id: "competency",   label: "Competency",   icon: "check"  },
+    { id: "transactions", label: "Transactions", icon: "pos"    },
+    { id: "settings",     label: "Settings",     icon: "pos"    },
   ];
 
   const handleMain = (id) => { onNav(id); setShowMore(false); };

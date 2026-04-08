@@ -17,6 +17,7 @@ import StaffPage from './pages/StaffPage';
 import SettingsPage from './pages/SettingsPage';
 import DutiesPage from './pages/DutiesPage';
 import StaffCompetencyPage from './pages/StaffCompetencyPage';
+import TransactionsPage from './pages/TransactionsPage';
 
 let toastId = 0;
 
@@ -84,7 +85,8 @@ const App = () => {
     orders:      <OrdersPage     key={JSON.stringify(pageCtx)} orders={orders} setOrders={setOrders} inventory={inventory} setInventory={setInventory} addToast={addToast} initCtx={pageCtx} />,
     forecasting: <ForecastingPage inventory={inventory} />,
     duties:      <DutiesPage          addToast={addToast} />,
-    competency:  <StaffCompetencyPage addToast={addToast} />,
+    competency:    <StaffCompetencyPage addToast={addToast} />,
+    transactions:  <TransactionsPage    addToast={addToast} />,
   };
 
   return (

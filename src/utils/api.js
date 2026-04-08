@@ -61,4 +61,7 @@ export const api = {
 
   // Test webhook — fires a simulated POS order through the full pipeline
   testWebhook: (items) => request('/webhook/test', { method: 'POST', body: items ? { items } : {} }),
+
+  // Transactions — webhook event log
+  getTransactions: () => request('/webhook/transactions'),
 };

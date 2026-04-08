@@ -35,10 +35,11 @@ const Sidebar = ({ current, onNav, alertCount, slingCount }) => (
         { id: "analytics", label: "Analytics",  icon: "forecast" },
       ]} />
       <NavGroup label="Operations" current={current} onNav={onNav} alertCount={alertCount} items={[
-        { id: "inventory",   label: "Inventory",   icon: "inventory" },
-        { id: "recipes",     label: "Recipes",     icon: "recipes" },
-        { id: "orders",      label: "Orders",      icon: "orders" },
-        { id: "forecasting", label: "Forecasting", icon: "forecast" },
+        { id: "inventory",    label: "Inventory",     icon: "inventory" },
+        { id: "recipes",      label: "Recipes",       icon: "recipes" },
+        { id: "orders",       label: "Orders",        icon: "orders" },
+        { id: "forecasting",  label: "Forecasting",   icon: "forecast" },
+        { id: "transactions", label: "Transactions",  icon: "pos" },
       ]} />
       <NavGroup label="Team" current={current} onNav={onNav} alertCount={alertCount} items={[
         { id: "staff",      label: "Staff",      icon: "sling"  },
