@@ -7,10 +7,11 @@ import { api } from '../utils/api.js';
 import { fmt$, fmtNum } from '../utils/helpers.js';
 
 const Dashboard = ({ inventory, orders, onNavigate, addToast, setInventory }) => {
-  const [refreshing, setRefreshing] = useState(false);
-  const [sales, setSales]           = useState([]);
-  const [recipes, setRecipes]       = useState([]);
-  const [txLog, setTxLog]           = useState([]);
+  const [refreshing, setRefreshing]       = useState(false);
+  const [alertDismissed, setAlertDismissed] = useState(false);
+  const [sales, setSales]                 = useState([]);
+  const [recipes, setRecipes]             = useState([]);
+  const [txLog, setTxLog]                 = useState([]);
 
   const loadData = useCallback(() => {
     return Promise.all([api.getSales(), api.getRecipes(), api.getTransactions()])
@@ -76,17 +77,7 @@ const Dashboard = ({ inventory, orders, onNavigate, addToast, setInventory }) =>
         </button>
       </div>
 
-      {/* Webhook live status banner */}
-      <div className="bg-stone-800 rounded-xl px-4 py-3 flex items-center gap-3">
-        <div className="p-1.5 bg-stone-700 rounded-lg"><Icon name="pos" className="w-4 h-4 text-orange-400" /></div>
-        <div className="flex-1">
-          <p className="text-white text-sm font-medium">Harbortouch · Shift4</p>
-          <p className="text-stone-400 text-xs">Live — orders auto-process via webhook. Inventory deducts the moment a sale closes.</p>
-        </div>
-        <div className="w-2 h-2 rounded-full shrink-0 bg-emerald-400" />
-      </div>
-
-      {lowStock.length > 0 && (
+      {lowStock.length > 0 && !alertDismissed && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
           <Icon name="alert" className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
           <div className="flex-1 min-w-0">
@@ -96,6 +87,9 @@ const Dashboard = ({ inventory, orders, onNavigate, addToast, setInventory }) =>
             </p>
           </div>
           <button onClick={() => onNavigate('inventory')} className="text-xs font-semibold text-amber-700 hover:text-amber-900 whitespace-nowrap">View All →</button>
+          <button onClick={() => setAlertDismissed(true)} className="text-amber-400 hover:text-amber-600 transition-colors shrink-0 ml-1" aria-label="Dismiss">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
         </div>
       )}
 
