@@ -23,7 +23,7 @@ const ForecastingPage = ({ inventory }) => {
   const avgW = hist.length ? hist.reduce((a, b) => a + b, 0) / hist.length : 0;
   const item = inventory.find(i => i.name === selected);
   const daysLeft = avgW > 0 ? Math.round((item?.currentStock || 0) / avgW * 7) : 0;
-  const futW = Array.from({ length: FW }, (_, i) => { const d = new Date(2026, 2, 30 + i * 7); return `${d.toLocaleString("default", { month: "short" })} ${d.getDate()}`; });
+  const futW = Array.from({ length: FW }, (_, i) => { const d = new Date(); d.setDate(d.getDate() + (i + 1) * 7); return `${d.toLocaleString("default", { month: "short" })} ${d.getDate()}`; });
 
   useEffect(() => {
     if (!lineRef.current) return;
