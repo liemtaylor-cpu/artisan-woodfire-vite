@@ -1,17 +1,137 @@
-// Menu recipes — each item maps to its ingredient usage per order
+// Menu recipes — each item maps to its ingredient usage per order.
+// `sku` must match the item name EXACTLY as it appears in the Harbor Touch
+// (Shift4) Item Sales report — it is the lookup key for the sales import.
+// Matching is case/whitespace/trailing-punctuation insensitive.
+// `ingredients` reference inventory ids; leave empty until mapped — items
+// without ingredients still import for revenue, they just skip inventory
+// deduction.
 export const RECIPES = [
-  { id:1, name:"Margherita",           price:16, icon:"🍕",
-    ingredients:[{id:1,qty:0.40},{id:5,qty:0.20},{id:13,qty:0.19},{id:14,qty:0.50},{id:4,qty:0.02}] },
-  { id:2, name:"Italian Sausage",      price:18, icon:"🍕",
-    ingredients:[{id:1,qty:0.40},{id:5,qty:0.20},{id:13,qty:0.19},{id:10,qty:0.13},{id:4,qty:0.02}] },
-  { id:3, name:"Prosciutto & Arugula", price:22, icon:"🍕",
-    ingredients:[{id:1,qty:0.40},{id:5,qty:0.15},{id:9,qty:0.06},{id:16,qty:0.06},{id:6,qty:0.03},{id:4,qty:0.02}] },
-  { id:4, name:"White Truffle",        price:20, icon:"🍕",
-    ingredients:[{id:1,qty:0.40},{id:7,qty:0.13},{id:5,qty:0.10},{id:15,qty:0.03},{id:4,qty:0.03}] },
-  { id:5, name:"Burrata Garden",       price:21, icon:"🍕",
-    ingredients:[{id:1,qty:0.40},{id:8,qty:0.50},{id:13,qty:0.19},{id:14,qty:0.50},{id:4,qty:0.02}] },
-  { id:6, name:"Pancetta Funghi",      price:19, icon:"🍕",
-    ingredients:[{id:1,qty:0.40},{id:5,qty:0.20},{id:13,qty:0.19},{id:11,qty:0.08},{id:4,qty:0.02}] },
+  // ── Pizza (Large) ─────────────────────────────────────────────
+  { id:1,  name:'Large "Ari" (Red Marinara)', sku:'LG "ARI" (RED MARINARA)',      price:16,   icon:"🍕", category:"Pizza (Large)", ingredients:[] },
+  { id:2,  name:"Large BBQ",                  sku:"LG BBQ",                       price:25,   icon:"🍕", category:"Pizza (Large)", ingredients:[] },
+  { id:3,  name:"Large Bianca",               sku:"LG Bianca",                    price:19,   icon:"🍕", category:"Pizza (Large)", ingredients:[] },
+  { id:4,  name:"Large Buffalo Chicken",      sku:"Lg Buffalo Chicken Pizza",     price:25,   icon:"🍕", category:"Pizza (Large)", ingredients:[] },
+  { id:5,  name:"Large Cheese",               sku:"LG CHEESE PIZZA",              price:18,   icon:"🍕", category:"Pizza (Large)", ingredients:[] },
+  { id:6,  name:"Large Chicken Alfredo",      sku:"LG Chicken Alfredo",           price:27,   icon:"🍕", category:"Pizza (Large)", ingredients:[] },
+  { id:7,  name:"Large Chicken Bacon Ranch",  sku:"LG Chicken Bacon Ranch Pizza", price:26,   icon:"🍕", category:"Pizza (Large)", ingredients:[] },
+  { id:8,  name:"Large Chicken Pesto",        sku:"LG Chicken Pesto",             price:25,   icon:"🍕", category:"Pizza (Large)", ingredients:[] },
+  { id:9,  name:"Large Figgy Goat",           sku:"LG Figgy Goat",                price:25,   icon:"🍕", category:"Pizza (Large)", ingredients:[] },
+  { id:10, name:"Large Four Cheese",          sku:"LG Four Cheese",               price:22,   icon:"🍕", category:"Pizza (Large)", ingredients:[] },
+  { id:11, name:"Large Hawaiian",             sku:"LG Hawaiian",                  price:22,   icon:"🍕", category:"Pizza (Large)", ingredients:[] },
+  { id:12, name:"Large Margherita",           sku:"LG Margherita",                price:18,   icon:"🍕", category:"Pizza (Large)", ingredients:[] },
+  { id:13, name:"Large Meats",                sku:"LG Meats",                     price:26,   icon:"🍕", category:"Pizza (Large)", ingredients:[] },
+  { id:14, name:"Large Pepperoni",            sku:"LG Pepperoni",                 price:22,   icon:"🍕", category:"Pizza (Large)", ingredients:[] },
+  { id:15, name:"Large Pesto Classic",        sku:"LG PESTO CLASSIC",             price:21,   icon:"🍕", category:"Pizza (Large)", ingredients:[] },
+  { id:16, name:"Large Royale",               sku:"LG Royale",                    price:28,   icon:"🍕", category:"Pizza (Large)", ingredients:[] },
+  { id:17, name:"Large Supreme",              sku:"LG SUPREME",                   price:27,   icon:"🍕", category:"Pizza (Large)", ingredients:[] },
+  { id:18, name:"Large Truffle Classic",      sku:"LG Truffle Classic",           price:25,   icon:"🍕", category:"Pizza (Large)", ingredients:[] },
+  { id:19, name:"Large Veg Delight",          sku:"LG Veg Delight",               price:22,   icon:"🍕", category:"Pizza (Large)", ingredients:[] },
+
+  // ── Pizza (Medium) ────────────────────────────────────────────
+  { id:20, name:'Medium "Ari" (Red Marinara)', sku:'M "ARI" /red marinara',       price:12,   icon:"🍕", category:"Pizza (Medium)", ingredients:[] },
+  { id:21, name:"Medium BBQ",                  sku:"M BBQ",                       price:19,   icon:"🍕", category:"Pizza (Medium)", ingredients:[] },
+  { id:22, name:"Medium Bianca",               sku:"M Bianca",                    price:14,   icon:"🍕", category:"Pizza (Medium)", ingredients:[] },
+  { id:23, name:"Medium Buffalo Chicken",      sku:"M Buffalo Chicken",           price:17,   icon:"🍕", category:"Pizza (Medium)", ingredients:[] },
+  { id:24, name:"Medium Cheese",               sku:"M CHEESE",                    price:13,   icon:"🍕", category:"Pizza (Medium)", ingredients:[] },
+  { id:25, name:"Medium Chicken Alfredo",      sku:"M Chk Alfredo",               price:21,   icon:"🍕", category:"Pizza (Medium)", ingredients:[] },
+  { id:26, name:"Medium Chicken Bacon Ranch",  sku:"M Chicken Bacon Ranch",       price:19,   icon:"🍕", category:"Pizza (Medium)", ingredients:[] },
+  { id:27, name:"Medium Chicken Pesto",        sku:"M Chicken Pesto",             price:21,   icon:"🍕", category:"Pizza (Medium)", ingredients:[] },
+  { id:28, name:"Medium Classic Truffle",      sku:"M Classic Truffle",           price:19.5, icon:"🍕", category:"Pizza (Medium)", ingredients:[] },
+  { id:29, name:"Medium Figgy Goat",           sku:"M Figgy Goat",                price:22,   icon:"🍕", category:"Pizza (Medium)", ingredients:[] },
+  { id:30, name:"Medium Four Cheese",          sku:"M Four Cheese",               price:18,   icon:"🍕", category:"Pizza (Medium)", ingredients:[] },
+  { id:31, name:"Medium Hawaiian",             sku:"M Hawaiian",                  price:17,   icon:"🍕", category:"Pizza (Medium)", ingredients:[] },
+  { id:32, name:"Medium Margherita",           sku:"M Margherita",                price:13,   icon:"🍕", category:"Pizza (Medium)", ingredients:[] },
+  { id:33, name:"Medium Meats",                sku:"M Meats",                     price:20,   icon:"🍕", category:"Pizza (Medium)", ingredients:[] },
+  { id:34, name:"Medium Pepperoni",            sku:"M Pepperoni",                 price:17,   icon:"🍕", category:"Pizza (Medium)", ingredients:[] },
+  { id:35, name:"Medium Pesto Classic",        sku:"M Pesto Classic",             price:17,   icon:"🍕", category:"Pizza (Medium)", ingredients:[] },
+  { id:36, name:"Medium Royale",               sku:"M Royale",                    price:21,   icon:"🍕", category:"Pizza (Medium)", ingredients:[] },
+  { id:37, name:"Medium Supreme",              sku:"M Supreme",                   price:22,   icon:"🍕", category:"Pizza (Medium)", ingredients:[] },
+  { id:38, name:"Medium Veg Delight",          sku:"M Veg Delight",               price:16,   icon:"🍕", category:"Pizza (Medium)", ingredients:[] },
+
+  // ── Calzones ──────────────────────────────────────────────────
+  { id:39, name:"Chicken Alfredo Calzone",     sku:"Chicken Alfredo Calzone.",    price:20, icon:"🥟", category:"Calzones", ingredients:[] },
+  { id:40, name:"Chicken Pesto Calzone",       sku:"Chicken Pesto Calzone",       price:20, icon:"🥟", category:"Calzones", ingredients:[] },
+  { id:41, name:"Pepperoni & Sausage Calzone", sku:"Pep & Sausage Calzone",       price:20, icon:"🥟", category:"Calzones", ingredients:[] },
+
+  // ── Wings ─────────────────────────────────────────────────────
+  { id:42, name:"6 Wings",          sku:"6 Wings",         price:14, icon:"🍗", category:"Wings", ingredients:[] },
+  { id:43, name:"12 Wings",         sku:"12 Wings",        price:24, icon:"🍗", category:"Wings", ingredients:[] },
+  { id:44, name:"18 Wings",         sku:"18 Wings",        price:32, icon:"🍗", category:"Wings", ingredients:[] },
+  { id:45, name:"6 Wings & Fries",  sku:"6 Wings N Fries", price:19, icon:"🍗", category:"Wings", ingredients:[] },
+
+  // ── Appetizers ────────────────────────────────────────────────
+  { id:46, name:"Artichoke Flatbread",       sku:"Artichoke Flatbread",              price:12, icon:"🫓", category:"Appetizers", ingredients:[] },
+  { id:47, name:"Cheese Bread & Marinara",   sku:"Cheese Bread & Marinara",          price:10, icon:"🥖", category:"Appetizers", ingredients:[] },
+  { id:48, name:"Truffle Cheese Bread",      sku:"Truffle Cheese Bread",             price:15, icon:"🥖", category:"Appetizers", ingredients:[] },
+  { id:49, name:"Garlic Bites & Marinara",   sku:"Garlic Bites And Marinara",        price:8,  icon:"🧄", category:"Appetizers", ingredients:[] },
+  { id:50, name:"Garlic Bites & Alfredo",    sku:"Garlic Bites And Alfredo",         price:11, icon:"🧄", category:"Appetizers", ingredients:[] },
+  { id:51, name:"Fried Ravioli",             sku:"Fried Ravioli",                    price:10, icon:"🧆", category:"Appetizers", ingredients:[] },
+  { id:52, name:"Fried Calamari",            sku:"FRIED CALAMARI",                   price:16, icon:"🦑", category:"Appetizers", ingredients:[] },
+  { id:53, name:"Fried Shrimp",              sku:"Fried Shrimp",                     price:10, icon:"🍤", category:"Appetizers", ingredients:[] },
+  { id:54, name:"Mozzarella Sticks",         sku:"Mozzarella Sticks w. Marinara",    price:10, icon:"🧀", category:"Appetizers", ingredients:[] },
+  { id:55, name:"Cheese Fries",              sku:"Cheese Fries",                     price:10, icon:"🍟", category:"Appetizers", ingredients:[] },
+  { id:56, name:"Truffle Parm Fries",        sku:"Truffle PARM FRIES",               price:8,  icon:"🍟", category:"Appetizers", ingredients:[] },
+  { id:57, name:"Loaded Cheese Fries",       sku:"Loaded Chz Fries (Chx, Bcn Rnch)", price:14, icon:"🍟", category:"Appetizers", ingredients:[] },
+  { id:58, name:"Housemade Meatballs (3)",   sku:"Housemade Meatballs (3)",          price:14, icon:"🍖", category:"Appetizers", ingredients:[] },
+  { id:59, name:"Housemade Meatballs (6)",   sku:"Housemade Meatballs (6)",          price:23, icon:"🍖", category:"Appetizers", ingredients:[] },
+  { id:60, name:"Hummus",                    sku:"Hummus",                           price:10, icon:"🫘", category:"Appetizers", ingredients:[] },
+  { id:61, name:"Mediterranean Hummus",      sku:"Mediterranean Hummus",             price:15, icon:"🫘", category:"Appetizers", ingredients:[] },
+
+  // ── Salads ────────────────────────────────────────────────────
+  { id:62, name:"Caesar Salad",         sku:"Caesar",              price:11, icon:"🥗", category:"Salads", ingredients:[] },
+  { id:63, name:"Mediterranean Salad",  sku:"Med Salad",           price:14, icon:"🥗", category:"Salads", ingredients:[] },
+  { id:64, name:"The House Salad",      sku:"The House",           price:10, icon:"🥗", category:"Salads", ingredients:[] },
+  { id:65, name:"The Italian Salad",    sku:"The Italian",         price:15, icon:"🥗", category:"Salads", ingredients:[] },
+  { id:66, name:"Walnut & Gorgonzola",  sku:"Walnut & Gorgonzola", price:14, icon:"🥗", category:"Salads", ingredients:[] },
+
+  // ── Pasta ─────────────────────────────────────────────────────
+  { id:67, name:"Fettuccine Alfredo",            sku:"Fettuccine Alfredo, Shaved Parm, pita", price:21, icon:"🍝", category:"Pasta", ingredients:[] },
+  { id:68, name:"Pesto Pasta w/ Grape Tomatoes", sku:"Pesto Pasta w Grape Tomatoes",          price:20, icon:"🍝", category:"Pasta", ingredients:[] },
+  { id:69, name:"Spaghetti & Meatballs",         sku:"Spaghetti & Meatballs",                 price:20, icon:"🍝", category:"Pasta", ingredients:[] },
+
+  // ── Kids ──────────────────────────────────────────────────────
+  { id:70, name:"Kids Cheese Pizza",      sku:"Kids Cheese Pizza",      price:6,  icon:"🍕", category:"Kids", ingredients:[] },
+  { id:71, name:"Kids Cheese Calzone",    sku:"Kids Cheese Calzone",    price:6,  icon:"🥟", category:"Kids", ingredients:[] },
+  { id:72, name:"Kids Spaghetti",         sku:"Kds Spaghetti",          price:6,  icon:"🍝", category:"Kids", ingredients:[] },
+  { id:73, name:"Kids Alfredo",           sku:"Kids Alfredo",           price:10, icon:"🍝", category:"Kids", ingredients:[] },
+  { id:74, name:"Kids Meatball & Bread",  sku:"Kids Meatball and Bread",price:6,  icon:"🍖", category:"Kids", ingredients:[] },
+  { id:75, name:"Kids Tenders & Fries",   sku:"kids tenders & fries",   price:8,  icon:"🍗", category:"Kids", ingredients:[] },
+
+  // ── Desserts ──────────────────────────────────────────────────
+  { id:76, name:"Cannoli",                sku:"Cannoli",                price:9,  icon:"🥐", category:"Desserts", ingredients:[] },
+  { id:77, name:"Cheesecake",             sku:"Cheesecake",             price:6,  icon:"🍰", category:"Desserts", ingredients:[] },
+  { id:78, name:"Premium Cheesecake",     sku:"Premium Cheesecake",     price:9,  icon:"🍰", category:"Desserts", ingredients:[] },
+  { id:79, name:"Tiramisu",               sku:"Tiramisu",               price:9,  icon:"🍮", category:"Desserts", ingredients:[] },
+  { id:80, name:"Churros",                sku:"Churros",                price:8,  icon:"🥨", category:"Desserts", ingredients:[] },
+  { id:81, name:"Chocolate Layered Cake", sku:"Chocolate layered cake", price:7,  icon:"🍫", category:"Desserts", ingredients:[] },
+  { id:82, name:"Coconut Cake",           sku:"Coconut Cake",           price:6,  icon:"🥥", category:"Desserts", ingredients:[] },
+  { id:83, name:"Italian Campfire",       sku:"Italian Campfire",       price:15, icon:"🔥", category:"Desserts", ingredients:[] },
+
+  // ── Sides & Extras ────────────────────────────────────────────
+  { id:84,  name:"Side of Fries",          sku:"Side of Fries",          price:5,    icon:"🍟", category:"Sides & Extras", ingredients:[] },
+  { id:85,  name:"Side of Protein",        sku:"Side of Protein",        price:4,    icon:"🍗", category:"Sides & Extras", ingredients:[] },
+  { id:86,  name:"Dough",                  sku:"Dough",                  price:4,    icon:"🫓", category:"Sides & Extras", ingredients:[] },
+  { id:87,  name:"Extra Pita",             sku:"Extra Pita",             price:1.5,  icon:"🫓", category:"Sides & Extras", ingredients:[] },
+  { id:88,  name:"Extra Bread",            sku:"Extra Bread",            price:0,    icon:"🥖", category:"Sides & Extras", ingredients:[] },
+  { id:89,  name:"Ranch Side",             sku:"Ranch Side",             price:1,    icon:"🥣", category:"Sides & Extras", ingredients:[] },
+  { id:90,  name:"Bleu Cheese Side",       sku:"Bleu Cheese",            price:0.75, icon:"🥣", category:"Sides & Extras", ingredients:[] },
+  { id:91,  name:"Buffalo Side",           sku:"Buffalo Side",           price:1,    icon:"🥣", category:"Sides & Extras", ingredients:[] },
+  { id:92,  name:"BBQ Side",               sku:"BBQ Side",               price:1,    icon:"🥣", category:"Sides & Extras", ingredients:[] },
+  { id:93,  name:"Hot Honey",              sku:"Hot Honey",              price:1,    icon:"🍯", category:"Sides & Extras", ingredients:[] },
+  { id:94,  name:"Marinara Side",          sku:"Marinara Side",          price:0.5,  icon:"🥣", category:"Sides & Extras", ingredients:[] },
+  { id:95,  name:"Pizza Sauce Side",       sku:"Pizza Sauce Side",       price:1,    icon:"🥣", category:"Sides & Extras", ingredients:[] },
+  { id:96,  name:"Alfredo Side",           sku:"Alfredo Side",           price:3,    icon:"🥣", category:"Sides & Extras", ingredients:[] },
+  { id:97,  name:"Pesto Side",             sku:"Pesto Side",             price:1.75, icon:"🌿", category:"Sides & Extras", ingredients:[] },
+  { id:98,  name:"Caesar Dressing Side",   sku:"Caesar Dressing Side",   price:1,    icon:"🥣", category:"Sides & Extras", ingredients:[] },
+  { id:99,  name:"Italian Dressing Side",  sku:"Italian Dressing Side",  price:1,    icon:"🥣", category:"Sides & Extras", ingredients:[] },
+  { id:100, name:"Balsamic Dressing Side", sku:"Balsamic Dressing Side", price:1,    icon:"🥣", category:"Sides & Extras", ingredients:[] },
+  { id:101, name:"Balsamic Glaze Side",    sku:"Balsamic Glaze Side",    price:4,    icon:"🥣", category:"Sides & Extras", ingredients:[] },
+  { id:102, name:"Jalapeño Side",          sku:"Jalapeno Side",          price:0.75, icon:"🌶️", category:"Sides & Extras", ingredients:[] },
+  { id:103, name:"Jalamango",              sku:"Jalamango",              price:1,    icon:"🌶️", category:"Sides & Extras", ingredients:[] },
+  { id:104, name:"Truff Sauce",            sku:"Truff Sauce",            price:3,    icon:"🥣", category:"Sides & Extras", ingredients:[] },
+  { id:105, name:"Extra Cheese",           sku:"Cheese",                 price:3,    icon:"🧀", category:"Sides & Extras", ingredients:[] },
+  { id:106, name:"Veggies",                sku:"Veggies",                price:0,    icon:"🥦", category:"Sides & Extras", ingredients:[] },
+  { id:107, name:"Olive Oil Side",         sku:"Olive Oil Side",         price:0,    icon:"🫒", category:"Sides & Extras", ingredients:[] },
 ];
 
 export const PREP_RECIPES = [

@@ -21,12 +21,13 @@ import SettingsPage from './pages/SettingsPage';
 import DutiesPage from './pages/DutiesPage';
 import StaffCompetencyPage from './pages/StaffCompetencyPage';
 import TransactionsPage from './pages/TransactionsPage';
+import ImportSalesPage from './pages/ImportSalesPage';
 
 let toastId = 0;
 
 const ROLE_PAGES = {
-  owner:    ['dashboard','sales','analytics','staff','settings','inventory','recipes','orders','forecasting','duties','competency','transactions'],
-  manager:  ['dashboard','sales','analytics','staff','inventory','recipes','orders','forecasting','duties','competency','transactions'],
+  owner:    ['dashboard','sales','analytics','staff','settings','inventory','recipes','orders','forecasting','duties','competency','transactions','import'],
+  manager:  ['dashboard','sales','analytics','staff','inventory','recipes','orders','forecasting','duties','competency','transactions','import'],
   employee: ['employee','duties','recipes'],
 };
 
@@ -134,6 +135,7 @@ const App = () => {
     duties:      <DutiesPage          addToast={addToast} />,
     competency:    <StaffCompetencyPage addToast={addToast} />,
     transactions:  <TransactionsPage    addToast={addToast} />,
+    import:        <ImportSalesPage     inventory={inventory} setInventory={setInventory} addToast={addToast} />,
   };
 
   // Ensure current page is valid for role; fall back to default

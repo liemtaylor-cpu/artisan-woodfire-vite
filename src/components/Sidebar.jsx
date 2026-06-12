@@ -24,6 +24,7 @@ const NAV_GROUPS = [
       { id: 'orders',       label: 'Orders',        icon: 'orders' },
       { id: 'forecasting',  label: 'Forecasting',   icon: 'forecast' },
       { id: 'transactions', label: 'Transactions',  icon: 'pos' },
+      { id: 'import',       label: 'Sales Import',  icon: 'pos' },
     ],
   },
   {

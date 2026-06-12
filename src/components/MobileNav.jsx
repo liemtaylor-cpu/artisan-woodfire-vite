@@ -19,6 +19,7 @@ const ALL_MORE_TABS = [
   { id: 'duties',       label: 'Duties',       icon: 'orders' },
   { id: 'competency',   label: 'Competency',   icon: 'check'   },
   { id: 'transactions', label: 'Transactions', icon: 'pos'     },
+  { id: 'import',       label: 'Sales Import', icon: 'pos'     },
   { id: 'settings',     label: 'Settings',     icon: 'pos'     },
 ];
 
