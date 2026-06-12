@@ -3,10 +3,6 @@ import { api } from '../utils/api';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-// Password is validated server-side via POST /api/auth/staff.
-// No secret is stored in this file.
-const AUTH_KEY = 'awk_competency_auth';
-
 const STAFF_LIST = [
   { id: 1, name: 'Marco Ricci',   role: 'Head Pizza Chef' },
   { id: 2, name: 'Sofia Delgado', role: 'Sous Chef' },
@@ -230,75 +226,9 @@ function ShiftColumn({ shift, staffList, competencies }) {
   );
 }
 
-// ─── Password Gate ────────────────────────────────────────────────────────────
-
-function PasswordGate({ onAuth }) {
-  const [input, setInput] = useState('');
-  const [error, setError] = useState(false);
-  const ref = useRef(null);
-
-  useEffect(() => { ref.current?.focus(); }, []);
-
-  const [checking, setChecking] = useState(false);
-
-  const attempt = async () => {
-    if (!input || checking) return;
-    setChecking(true);
-    try {
-      await api.authStaff(input);
-      localStorage.setItem(AUTH_KEY, '1');
-      onAuth();
-    } catch {
-      setError(true);
-      setInput('');
-      setTimeout(() => setError(false), 1500);
-    } finally {
-      setChecking(false);
-    }
-  };
-
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
-      <div className="text-center space-y-1">
-        <div className="w-14 h-14 bg-orange-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-          <svg className="w-7 h-7 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-          </svg>
-        </div>
-        <h2 className="text-xl font-bold text-stone-800">Staff Portal</h2>
-        <p className="text-stone-400 text-sm">Enter the staff password to continue</p>
-      </div>
-      <div className="w-full max-w-xs space-y-3">
-        <input
-          ref={ref}
-          type="password"
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && attempt()}
-          placeholder="Password"
-          className={`w-full border rounded-xl px-4 py-3 text-sm text-stone-800 focus:outline-none focus:ring-2 transition-all ${
-            error
-              ? 'border-red-300 ring-2 ring-red-200 placeholder-red-300'
-              : 'border-stone-200 focus:ring-orange-300'
-          }`}
-        />
-        {error && <p className="text-xs text-red-500 text-center font-medium">Incorrect password — try again</p>}
-        <button
-          onClick={attempt}
-          disabled={checking}
-          className="w-full bg-orange-600 hover:bg-orange-700 disabled:opacity-60 text-white font-semibold py-3 rounded-xl text-sm transition-colors"
-        >
-          {checking ? 'Checking…' : 'Unlock'}
-        </button>
-      </div>
-    </div>
-  );
-}
-
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 const StaffCompetencyPage = ({ addToast }) => {
-  const [authed, setAuthed]   = useState(() => localStorage.getItem(AUTH_KEY) === '1');
   const [view, setView]       = useState('roster');   // 'roster' | 'shifts'
   const [comps, setComps]     = useState(DEFAULT_COMPETENCIES);
   const saveTimer             = useRef(null);
@@ -307,7 +237,6 @@ const StaffCompetencyPage = ({ addToast }) => {
   useEffect(() => () => clearTimeout(saveTimer.current), []);
 
   useEffect(() => {
-    if (!authed) return;
     api.getCompetencies()
       .then(data => {
         if (data && Object.keys(data).length > 0) {
@@ -320,7 +249,7 @@ const StaffCompetencyPage = ({ addToast }) => {
         }
       })
       .catch(() => { /* stay on defaults */ });
-  }, [authed]);
+  }, []);
 
   const handleChange = (staffId, key, val) => {
     setComps(prev => {
@@ -338,10 +267,6 @@ const StaffCompetencyPage = ({ addToast }) => {
       return updated;
     });
   };
-
-  if (!authed) {
-    return <PasswordGate onAuth={() => setAuthed(true)} />;
-  }
 
   const avgOvr = Math.round(
     STAFF_LIST.reduce((sum, s) => sum + calcOvr(comps[s.id] ?? {}), 0) / STAFF_LIST.length
@@ -369,12 +294,6 @@ const StaffCompetencyPage = ({ addToast }) => {
               {coverageIssues.length} gap{coverageIssues.length > 1 ? 's' : ''}
             </span>
           )}
-          <button
-            onClick={() => { localStorage.removeItem(AUTH_KEY); setAuthed(false); }}
-            className="px-3 py-2 border border-stone-200 rounded-xl text-xs text-stone-400 hover:bg-stone-50 font-medium transition-colors"
-          >
-            Lock
-          </button>
         </div>
       </div>
 
